@@ -2,7 +2,7 @@
 
 <footer class="border-t border-zinc-800 mt-16">
     <div class="max-w-5xl mx-auto px-5 py-5 flex items-center justify-between">
-        <span class="text-xs text-zinc-700">Espi's<span class="text-red-900">.</span></span>
+        <span class="text-xs text-zinc-700">Espi's</span>
         <a href="https://github.com/joshespi/random-tools"
            target="_blank" rel="noopener noreferrer"
            class="text-xs text-zinc-700 hover:text-zinc-400 transition-colors font-mono flex items-center gap-1.5">

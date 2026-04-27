@@ -8,10 +8,6 @@ A small collection of randomization utilities. Runs in Docker with PHP and Tailw
 
 **Passphrase Generator** — Generate memorable word-based passphrases. Control word count (2–10), delimiter style (dash, underscore, dot, space, none, digit-between, or custom), capitalisation, and optional appended number or symbol.
 
-**Dice Roller** — Roll d4, d6, d8, d10, d12, d20, d100, or any custom die. Roll multiple at once with an optional modifier. Nat 1s and max rolls are highlighted. History saved to localStorage.
-
-**Random Numbers** — Generate one or many integers in a range. Optional no-duplicates mode (Fisher-Yates), sort ascending, copy as CSV. Quick presets for common ranges.
-
 ## Stack
 
 - PHP 8.2 (Apache)
@@ -42,9 +38,7 @@ random/
     │   └── words.php      # word pool for passphrase generator (~200 words)
     ├── index.php
     ├── picker.php
-    ├── passphrase.php
-    ├── dice.php
-    └── number.php
+    └── passphrase.php
 ```
 
 To add words to the passphrase pool, edit `src/includes/words.php`.

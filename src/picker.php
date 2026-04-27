@@ -76,8 +76,8 @@ include 'includes/header.php';
     <div class="lg:col-span-2 space-y-3">
 
         <div class="rounded-xl p-5 border border-zinc-800 text-center space-y-5" style="background:#111113;">
-            <button onclick="doPick()"
-                    class="w-full py-4 bg-red-700 hover:bg-red-600 active:scale-95 rounded-xl text-white font-bold text-xl tracking-tight transition-all">
+            <button id="pickBtn" onclick="doPick()"
+                    class="w-full py-4 bg-red-700 hover:bg-red-600 active:scale-95 rounded-xl text-white font-bold text-xl tracking-tight transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100">
                 Pick
             </button>
             <div id="result" class="min-h-[72px] flex items-center justify-center">
@@ -104,11 +104,18 @@ function defaultState() {
     return {
         sets: {
             'Lunch': [
-                { name: 'Pizza',   weight: 3 },
-                { name: 'Sushi',   weight: 1 },
-                { name: 'Tacos',   weight: 2 },
-                { name: 'Burgers', weight: 2 },
-                { name: 'Salad',   weight: 1 },
+                { name: "Freddy's",      weight: 1 },
+                { name: 'JJs',           weight: 1 },
+                { name: 'Mosidas',       weight: 1 },
+                { name: 'Thai',          weight: 1 },
+                { name: 'Great Steak',   weight: 1 },
+                { name: 'Mcdonalds',     weight: 1 },
+                { name: 'Taco Bell',     weight: 1 },
+                { name: 'KFC',           weight: 1 },
+                { name: 'Arbys',         weight: 1 },
+                { name: 'Cafe Rio',      weight: 1 },
+                { name: 'Little Ceasers', weight: 1 },
+                { name: 'Betos',         weight: 1 },
             ]
         },
         current: 'Lunch',
@@ -291,23 +298,57 @@ function doPick() {
         return;
     }
 
-    resultEl.innerHTML = `
-        <span class="text-3xl font-extrabold text-zinc-100 tracking-tight animate-pop block leading-tight">
-            ${escHtml(pick)}
-        </span>`;
+    noteEl.classList.add('hidden');
+    const btn = document.getElementById('pickBtn');
+    if (btn) btn.disabled = true;
 
-    const total = options.reduce((s, o) => s + Number(o.weight), 0);
-    const chosen = options.find(o => o.name === pick);
-    if (chosen && total > 0) {
-        const pct = Math.round((Number(chosen.weight) / total) * 100);
-        noteEl.textContent = `${pct}% chance`;
-        noteEl.classList.remove('hidden');
+    const ITEM_H   = 60;
+    const REEL_LEN = 22;
+    const reel = [];
+    for (let i = 0; i < REEL_LEN; i++) {
+        reel.push(options[Math.floor(Math.random() * options.length)].name);
     }
+    reel.push(pick);
 
-    state.history.push({ set: state.current, pick, ts: Date.now() });
-    if (state.history.length > 200) state.history.shift();
-    saveState();
-    renderHistory();
+    const itemsHtml = reel.map((n, i) => {
+        const isWinner = i === reel.length - 1;
+        const cls = isWinner
+            ? 'text-3xl font-extrabold text-zinc-100 tracking-tight'
+            : 'text-2xl font-semibold text-zinc-600';
+        return `<div style="height:${ITEM_H}px;" class="flex items-center justify-center ${cls}">${escHtml(n)}</div>`;
+    }).join('');
+
+    resultEl.innerHTML = `
+        <div class="overflow-hidden w-full relative" style="height:${ITEM_H}px;">
+            <div id="pickerReel" style="transform: translateY(0); will-change: transform;">
+                ${itemsHtml}
+            </div>
+            <div class="pointer-events-none absolute inset-x-0 top-0 h-3" style="background:linear-gradient(to bottom,#111113,transparent);"></div>
+            <div class="pointer-events-none absolute inset-x-0 bottom-0 h-3" style="background:linear-gradient(to top,#111113,transparent);"></div>
+        </div>`;
+
+    requestAnimationFrame(() => {
+        const reelEl = document.getElementById('pickerReel');
+        reelEl.style.transition = 'transform 1.5s cubic-bezier(0.18, 0.9, 0.3, 1)';
+        reelEl.style.transform  = `translateY(-${(reel.length - 1) * ITEM_H}px)`;
+    });
+
+    setTimeout(() => {
+        const total = options.reduce((s, o) => s + Number(o.weight), 0);
+        const chosen = options.find(o => o.name === pick);
+        if (chosen && total > 0) {
+            const pct = Math.round((Number(chosen.weight) / total) * 100);
+            noteEl.textContent = `${pct}% chance`;
+            noteEl.classList.remove('hidden');
+        }
+
+        state.history.push({ set: state.current, pick, ts: Date.now() });
+        if (state.history.length > 200) state.history.shift();
+        saveState();
+        renderHistory();
+
+        if (btn) btn.disabled = false;
+    }, 1550);
 }
 
 function clearHistory() {

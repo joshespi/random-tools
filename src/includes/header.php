@@ -3,8 +3,6 @@ $nav = [
     'index.php'      => 'Home',
     'picker.php'     => 'Picker',
     'passphrase.php' => 'Passphrase',
-    'dice.php'       => 'Dice',
-    'number.php'     => 'Numbers',
 ];
 $current = basename($_SERVER['PHP_SELF']);
 ?><!DOCTYPE html>
@@ -12,7 +10,7 @@ $current = basename($_SERVER['PHP_SELF']);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title><?= htmlspecialchars(($pageTitle ?? 'Tools') . ' — Espi\'s') ?></title>
+    <title><?= htmlspecialchars($pageTitle ?? 'Tools') ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -61,8 +59,8 @@ $current = basename($_SERVER['PHP_SELF']);
 
 <nav class="border-b border-zinc-800 sticky top-0 z-50" style="background:#09090b;">
     <div class="max-w-5xl mx-auto px-5 flex items-center h-13 gap-0" style="height:52px;">
-        <a href="/index.php" class="select-none mr-6 flex items-baseline gap-0.5">
-            <span class="font-extrabold text-lg tracking-tight text-zinc-100">Espi's</span><span class="text-red-600 font-black text-xl leading-none">.</span>
+        <a href="/index.php" class="select-none mr-6">
+            <span class="font-extrabold text-lg tracking-tight text-zinc-100">Espi's</span>
         </a>
         <?php foreach ($nav as $file => $label): ?>
             <?php $active = $current === $file; ?>

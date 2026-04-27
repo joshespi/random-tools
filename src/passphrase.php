@@ -2,13 +2,13 @@
 $pageTitle = 'Passphrase';
 include 'includes/words.php';
 
-$wordCount   = max(2, min(10, (int)($_POST['word_count']  ?? 4)));
-$delimiter   = $_POST['delimiter']   ?? '-';
-$customDelim = $_POST['custom_delim'] ?? '';
-$caseMode    = $_POST['case_mode']   ?? 'lower';
-$appendNum   = isset($_POST['append_num']);
-$appendSym   = isset($_POST['append_sym']);
-$quantity    = max(1, min(20, (int)($_POST['quantity'] ?? 5)));
+$wordCount   = 4;
+$delimiter   = '-';
+$customDelim = '';
+$caseMode    = 'lower';
+$appendNum   = false;
+$appendSym   = false;
+$quantity    = 5;
 
 $delimOptions = [
     '-'      => 'Dash  —  word-word',
@@ -20,73 +20,19 @@ $delimOptions = [
     'custom' => 'Custom…',
 ];
 
-$symbols = ['!', '@', '#', '$', '%', '^', '&', '*'];
-
-function buildPassphrase(array $words, int $count, string $delim, string $customDelim,
-                         string $caseMode, bool $appendNum, bool $appendSym, array $symbols): string
-{
-    $pool = $words;
-    shuffle($pool);
-    $picked = array_slice($pool, 0, min($count, count($pool)));
-
-    $picked = array_map(function($w) use ($caseMode) {
-        return match($caseMode) {
-            'upper' => strtoupper($w),
-            'title' => ucfirst($w),
-            'camel' => ucfirst($w),
-            default => strtolower($w),
-        };
-    }, $picked);
-
-    if ($caseMode === 'camel') {
-        $picked[0] = strtolower($picked[0]);
-        for ($i = 1; $i < count($picked); $i++) $picked[$i] = ucfirst($picked[$i]);
-    }
-
-    if ($delim === 'number') {
-        $parts = [];
-        foreach ($picked as $j => $w) {
-            $parts[] = $w;
-            if ($j < count($picked) - 1) $parts[] = (string)random_int(0, 9);
-        }
-        $phrase = implode('', $parts);
-    } elseif ($delim === 'custom') {
-        $phrase = implode($customDelim, $picked);
-    } else {
-        $phrase = implode($delim, $picked);
-    }
-
-    if ($appendNum) $phrase .= random_int(10, 99);
-    if ($appendSym) $phrase .= $symbols[array_rand($symbols)];
-
-    return $phrase;
-}
-
-$results = [];
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    for ($i = 0; $i < $quantity; $i++) {
-        $results[] = buildPassphrase(
-            $WORDS, $wordCount, $delimiter, $customDelim,
-            $caseMode, $appendNum, $appendSym, $symbols
-        );
-    }
-}
-
 include 'includes/header.php';
 ?>
 
 <h1 class="text-2xl font-bold text-zinc-100 mb-1 tracking-tight">Passphrase Generator</h1>
-<p class="text-zinc-500 mb-7 text-sm">Generate memorable word-based passphrases. Adjust options and click Generate.</p>
+<p class="text-zinc-500 mb-7 text-sm">Live preview — tweak settings and the phrases regenerate.</p>
 
 <div class="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
-    <!-- Settings form -->
-    <form method="POST" class="lg:col-span-2 space-y-3">
+    <form id="phraseForm" class="lg:col-span-2 space-y-3" onsubmit="event.preventDefault();">
         <div class="rounded-xl p-5 border border-zinc-800 space-y-5" style="background:#111113;">
 
             <div class="text-xs text-zinc-600 font-medium uppercase tracking-widest">Options</div>
 
-            <!-- Word count -->
             <div>
                 <div class="flex justify-between mb-2">
                     <label class="text-sm text-zinc-400">Word count</label>
@@ -97,7 +43,6 @@ include 'includes/header.php';
                        class="w-full">
             </div>
 
-            <!-- Delimiter -->
             <div>
                 <label class="block text-sm text-zinc-400 mb-2">Delimiter</label>
                 <select name="delimiter" id="delimSelect" onchange="toggleCustom(this.value)"
@@ -114,7 +59,6 @@ include 'includes/header.php';
                        class="mt-2 w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-red-600 <?= $delimiter === 'custom' ? '' : 'hidden' ?>">
             </div>
 
-            <!-- Case -->
             <div>
                 <label class="block text-sm text-zinc-400 mb-2">Capitalisation</label>
                 <div class="grid grid-cols-2 gap-y-2 gap-x-4">
@@ -128,7 +72,6 @@ include 'includes/header.php';
                 </div>
             </div>
 
-            <!-- Extras -->
             <div>
                 <label class="block text-sm text-zinc-400 mb-2">Append</label>
                 <div class="space-y-2">
@@ -143,7 +86,6 @@ include 'includes/header.php';
                 </div>
             </div>
 
-            <!-- Quantity -->
             <div>
                 <label class="block text-sm text-zinc-400 mb-2">How many</label>
                 <input type="number" name="quantity" min="1" max="20" value="<?= $quantity ?>"
@@ -151,44 +93,135 @@ include 'includes/header.php';
             </div>
         </div>
 
-        <button type="submit"
+        <button type="button" id="rerollBtn"
                 class="w-full py-3.5 bg-red-700 hover:bg-red-600 active:scale-95 rounded-xl text-white font-bold text-lg tracking-tight transition-all">
-            Generate
+            Re-roll
         </button>
     </form>
 
-    <!-- Results -->
     <div class="lg:col-span-3">
-        <?php if (empty($results)): ?>
-            <div class="rounded-xl border border-zinc-800 p-10 text-center text-zinc-600 text-sm" style="background:#111113;">
-                Results will appear here.
-            </div>
-        <?php else: ?>
-            <div class="space-y-2">
-                <?php foreach ($results as $phrase): ?>
-                    <div class="rounded-xl border border-zinc-800 px-4 py-3 flex items-center gap-3" style="background:#111113;">
-                        <code class="flex-1 font-mono text-sm text-zinc-100 break-all select-all tracking-wide">
-                            <?= htmlspecialchars($phrase) ?>
-                        </code>
-                        <button onclick="copyText(this, <?= htmlspecialchars(json_encode($phrase)) ?>)"
-                                class="shrink-0 px-3 py-1 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg text-xs text-zinc-500 hover:text-zinc-300 transition-colors font-mono">
-                            copy
-                        </button>
-                    </div>
-                <?php endforeach; ?>
-            </div>
-            <div class="mt-3 text-xs text-zinc-700 font-mono">
-                pool: <?= count($WORDS) ?> words &nbsp;&mdash;&nbsp; click a passphrase to select all
-            </div>
-        <?php endif; ?>
+        <div id="phraseList" class="space-y-2"></div>
+        <div class="mt-3 text-xs text-zinc-700 font-mono flex flex-wrap gap-x-4 gap-y-1">
+            <span>pool: <?= count($WORDS) ?> words</span>
+            <span id="entropySummary"></span>
+            <span>click a passphrase to select all</span>
+        </div>
     </div>
 </div>
 
 <script>
+const WORDS   = <?= json_encode($WORDS) ?>;
+const SYMBOLS = ['!','@','#','$','%','^','&','*'];
+const POOL    = WORDS.length;
+
+function rand(n) {
+    const buf = new Uint32Array(1);
+    crypto.getRandomValues(buf);
+    return buf[0] % n;
+}
+
+function getSettings() {
+    const f = document.getElementById('phraseForm');
+    return {
+        count:       Math.max(2, Math.min(10, parseInt(f.word_count.value, 10) || 4)),
+        delimiter:   f.delimiter.value,
+        customDelim: f.custom_delim.value,
+        caseMode:    f.case_mode.value,
+        appendNum:   f.append_num.checked,
+        appendSym:   f.append_sym.checked,
+        quantity:    Math.max(1, Math.min(20, parseInt(f.quantity.value, 10) || 5)),
+    };
+}
+
+function applyCase(word, mode, isFirst) {
+    const lower = word.toLowerCase();
+    if (mode === 'upper') return word.toUpperCase();
+    if (mode === 'title') return lower.charAt(0).toUpperCase() + lower.slice(1);
+    if (mode === 'camel') return isFirst ? lower : lower.charAt(0).toUpperCase() + lower.slice(1);
+    return lower;
+}
+
+function buildPhrase(s) {
+    const want = Math.min(s.count, POOL);
+    const picked = [];
+    const used = new Set();
+    while (picked.length < want) {
+        const i = rand(POOL);
+        if (used.has(i)) continue;
+        used.add(i);
+        picked.push(applyCase(WORDS[i], s.caseMode, picked.length === 0));
+    }
+
+    let phrase;
+    if (s.delimiter === 'number') {
+        const parts = [];
+        picked.forEach((w, j) => {
+            parts.push(w);
+            if (j < picked.length - 1) parts.push(String(rand(10)));
+        });
+        phrase = parts.join('');
+    } else if (s.delimiter === 'custom') {
+        phrase = picked.join(s.customDelim);
+    } else {
+        phrase = picked.join(s.delimiter);
+    }
+
+    if (s.appendNum) phrase += String(10 + rand(90));
+    if (s.appendSym) phrase += SYMBOLS[rand(SYMBOLS.length)];
+
+    return phrase;
+}
+
+function entropyBits(s) {
+    let bits = s.count * Math.log2(POOL);
+    if (s.delimiter === 'number') bits += (s.count - 1) * Math.log2(10);
+    if (s.appendNum) bits += Math.log2(90);
+    if (s.appendSym) bits += Math.log2(SYMBOLS.length);
+    return Math.round(bits);
+}
+
+function strengthLabel(bits) {
+    if (bits < 40) return { label: 'weak',      cls: 'text-yellow-600' };
+    if (bits < 60) return { label: 'okay',      cls: 'text-zinc-400'   };
+    if (bits < 80) return { label: 'strong',    cls: 'text-emerald-500'};
+    return            { label: 'excellent', cls: 'text-emerald-400'};
+}
+
+function escHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+function render() {
+    const s = getSettings();
+    const list = document.getElementById('phraseList');
+    const phrases = [];
+    for (let i = 0; i < s.quantity; i++) phrases.push(buildPhrase(s));
+
+    list.innerHTML = phrases.map(p => `
+        <div class="rounded-xl border border-zinc-800 px-4 py-3 flex items-center gap-3" style="background:#111113;">
+            <code class="flex-1 font-mono text-sm text-zinc-100 break-all select-all tracking-wide">${escHtml(p)}</code>
+            <button type="button" data-phrase="${escHtml(p)}"
+                    class="phrase-copy shrink-0 px-3 py-1 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg text-xs text-zinc-500 hover:text-zinc-300 transition-colors font-mono">
+                copy
+            </button>
+        </div>
+    `).join('');
+
+    const bits = entropyBits(s);
+    const st = strengthLabel(bits);
+    document.getElementById('entropySummary').innerHTML =
+        `~${bits} bits <span class="${st.cls}">${st.label}</span>`;
+}
+
 function toggleCustom(val) {
     const el = document.getElementById('customDelimInput');
     el.classList.toggle('hidden', val !== 'custom');
     if (val === 'custom') el.focus();
+    render();
 }
 
 function copyText(btn, text) {
@@ -202,6 +235,16 @@ function copyText(btn, text) {
         }, 1500);
     });
 }
+
+document.getElementById('phraseList').addEventListener('click', e => {
+    const btn = e.target.closest('.phrase-copy');
+    if (btn) copyText(btn, btn.dataset.phrase);
+});
+document.getElementById('phraseForm').addEventListener('input', render);
+document.getElementById('phraseForm').addEventListener('change', render);
+document.getElementById('rerollBtn').addEventListener('click', render);
+
+render();
 </script>
 
 <?php include 'includes/footer.php'; ?>
