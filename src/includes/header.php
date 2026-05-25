@@ -3,6 +3,7 @@ $nav = [
     'index.php'      => 'Home',
     'picker.php'     => 'Picker',
     'passphrase.php' => 'Passphrase',
+    'tip.php'        => 'Tip',
 ];
 $current = basename($_SERVER['PHP_SELF']);
 ?><!DOCTYPE html>

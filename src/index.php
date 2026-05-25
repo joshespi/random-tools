@@ -20,6 +20,11 @@ include 'includes/header.php';
         <p class="text-zinc-500 text-sm leading-relaxed">Word-based passphrases with configurable count, delimiter, casing, and appended digits or symbols.</p>
     </a>
 
+    <a href="/tip.php" class="group block rounded-xl p-5 border border-zinc-800 hover:border-zinc-700 hover:bg-zinc-900/50 transition-all" style="background:#111113;">
+        <h2 class="text-base font-semibold text-zinc-100 mb-1 group-hover:text-red-400 transition-colors">Tip Calculator</h2>
+        <p class="text-zinc-500 text-sm leading-relaxed">Bill amount, tip percentage, and split. Shows tip, total, and per-person breakdown.</p>
+    </a>
+
 </div>
 
 <?php include 'includes/footer.php'; ?>
