@@ -4,7 +4,7 @@ include 'includes/header.php';
 ?>
 
 <h1 class="text-2xl font-bold text-zinc-100 mb-1 tracking-tight">Weighted Picker</h1>
-<p class="text-zinc-500 mb-7 text-sm">Higher weight = picked more often. Options show their percentage chance.</p>
+<p class="text-zinc-500 mb-7 text-sm">Higher weight = picked more often. Chances shown for today. Use the calendar button to add day-of-week bonuses.</p>
 
 <div class="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
@@ -39,6 +39,7 @@ include 'includes/header.php';
                 <span class="flex-1">Option</span>
                 <span class="w-20 text-center">Weight</span>
                 <span class="w-12 text-right">Chance</span>
+                <span class="w-8"></span>
                 <span class="w-8"></span>
             </div>
             <div id="optionList" class="divide-y divide-zinc-800/60"></div>
@@ -99,26 +100,31 @@ include 'includes/header.php';
 
 <script>
 const STORAGE_KEY = 'randomizer_picker_v1';
+const DAY_NAMES   = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+const TODAY       = new Date().getDay();
+const CAL_ICON    = `<svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true"><path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5zM1 4v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V4H1z"/></svg>`;
+
+const expandedRows = new Set();
 
 function defaultState() {
     return {
         sets: {
             'Lunch': [
-                { name: "Freddy's",         weight: 1 },
-                { name: 'JJs',              weight: 3 },
-                { name: 'Mosidas',          weight: 1 },
-                { name: 'Thai',             weight: 2 },
-                { name: 'Great Steak',      weight: 3 },
-                { name: 'Mcdonalds',        weight: 1 },
-                { name: 'Taco Bell',        weight: 2 },
-                { name: 'KFC',              weight: 1 },
-                { name: 'Arbys',            weight: 1 },
-                { name: 'Cafe Rio',         weight: 1 },
-                { name: 'Little Ceasers',   weight: 1 },
-                { name: 'Betos',            weight: 1 },
-                { name: "Cane's",           weight: 1 },
-                { name: 'Burger King',      weight: 1 },
-                { name: "Wendy's",          weight: 1 },
+                { name: "Freddy's",       weight: 1 },
+                { name: 'JJs',            weight: 3 },
+                { name: 'Mosidas',        weight: 1 },
+                { name: 'Thai',           weight: 2 },
+                { name: 'Great Steak',    weight: 3 },
+                { name: 'Mcdonalds',      weight: 1 },
+                { name: 'Taco Bell',      weight: 2 },
+                { name: 'KFC',            weight: 1 },
+                { name: 'Arbys',          weight: 1 },
+                { name: 'Cafe Rio',       weight: 1 },
+                { name: 'Little Ceasers', weight: 1 },
+                { name: 'Betos',          weight: 1 },
+                { name: "Cane's",         weight: 1 },
+                { name: 'Burger King',    weight: 1 },
+                { name: "Wendy's",        weight: 1 },
             ]
         },
         current: 'Lunch',
@@ -139,15 +145,29 @@ function saveState() {
 
 let state = loadState();
 
-function weightedPick(options) {
-    const total = options.reduce((s, o) => s + Number(o.weight), 0);
-    if (total <= 0 || options.length === 0) return null;
-    let r = Math.random() * total;
+function effectiveWeight(opt) {
+    const bonus = (opt.days || {})[TODAY] || 0;
+    return Math.max(0, Number(opt.weight) + Number(bonus));
+}
+
+function buildPairs(options) {
+    const pairs = [];
+    let total = 0;
     for (const o of options) {
-        r -= Number(o.weight);
+        const w = effectiveWeight(o);
+        if (w > 0) { pairs.push([o, w]); total += w; }
+    }
+    return { pairs, total };
+}
+
+function weightedPick(pairs, total) {
+    if (total <= 0) return null;
+    let r = Math.random() * total;
+    for (const [o, w] of pairs) {
+        r -= w;
         if (r <= 0) return o.name;
     }
-    return options[options.length - 1].name;
+    return pairs[pairs.length - 1][0].name;
 }
 
 function renderSetSelect() {
@@ -171,25 +191,51 @@ function renderOptions() {
         return;
     }
 
-    const total = options.reduce((s, o) => s + Number(o.weight), 0);
+    const total = options.reduce((s, o) => s + effectiveWeight(o), 0);
 
     list.innerHTML = options.map((opt, i) => {
-        const pct = total > 0 ? Math.round((Number(opt.weight) / total) * 100) : 0;
-        return `
-        <div class="flex items-center gap-2 px-4 py-2.5 hover:bg-zinc-800/30 transition-colors">
-            <input type="text"
-                   value="${escHtml(opt.name)}"
-                   onchange="updateOption(${i}, 'name', this.value)"
-                   class="flex-1 bg-transparent border border-transparent hover:border-zinc-700 focus:border-red-700 rounded px-2 py-1 text-sm text-zinc-200 focus:outline-none focus:bg-zinc-800">
-            <input type="number" min="1"
-                   value="${Number(opt.weight)}"
-                   onchange="updateOption(${i}, 'weight', this.value)"
-                   class="w-16 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-sm text-zinc-200 text-center focus:outline-none focus:ring-1 focus:ring-red-600">
-            <span class="w-10 text-right text-xs text-zinc-600 font-mono">${pct}%</span>
-            <button onclick="removeOption(${i})"
-                    class="w-7 h-7 flex items-center justify-center text-zinc-700 hover:text-red-500 hover:bg-red-950/30 rounded transition-colors text-sm">
-                &#x2715;
-            </button>
+        const eff  = effectiveWeight(opt);
+        const pct  = total > 0 ? Math.round((eff / total) * 100) : 0;
+        const days = opt.days || {};
+        const hasModifiers = Object.values(days).some(v => Number(v) !== 0);
+        const expanded = expandedRows.has(opt.name);
+
+        const dayEditor = DAY_NAMES.map((d, di) => {
+            const val     = Number(days[di] || 0);
+            const isToday = di === TODAY;
+            return `<div class="flex flex-col items-center gap-1">
+                <span class="text-xs font-mono ${isToday ? 'text-red-500' : 'text-zinc-600'}">${d}</span>
+                <input type="number" value="${val}"
+                       onchange="updateDayWeight(${i}, ${di}, this.value)"
+                       class="w-10 bg-zinc-900 border ${isToday ? 'border-red-900' : 'border-zinc-800'} rounded px-1 py-0.5 text-xs text-zinc-300 text-center focus:outline-none focus:ring-1 focus:ring-red-600">
+            </div>`;
+        }).join('');
+
+        return `<div>
+            <div class="flex items-center gap-2 px-4 py-2.5 hover:bg-zinc-800/30 transition-colors">
+                <input type="text"
+                       value="${escHtml(opt.name)}"
+                       onchange="updateOption(${i}, 'name', this.value)"
+                       class="flex-1 bg-transparent border border-transparent hover:border-zinc-700 focus:border-red-700 rounded px-2 py-1 text-sm text-zinc-200 focus:outline-none focus:bg-zinc-800">
+                <input type="number" min="1"
+                       value="${Number(opt.weight)}"
+                       onchange="updateOption(${i}, 'weight', this.value)"
+                       class="w-16 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-sm text-zinc-200 text-center focus:outline-none focus:ring-1 focus:ring-red-600">
+                <span class="w-10 text-right text-xs font-mono ${eff === 0 ? 'text-red-800' : 'text-zinc-600'}">${eff === 0 ? 'skip' : pct + '%'}</span>
+                <button onclick="toggleDays(${i})"
+                        title="Day-of-week bonuses"
+                        class="w-7 h-7 flex items-center justify-center rounded transition-colors ${hasModifiers || expanded ? 'text-red-500' : 'text-zinc-700 hover:text-zinc-400'}">
+                    ${CAL_ICON}
+                </button>
+                <button onclick="removeOption(${i})"
+                        class="w-7 h-7 flex items-center justify-center text-zinc-700 hover:text-red-500 hover:bg-red-950/30 rounded transition-colors text-sm">
+                    &#x2715;
+                </button>
+            </div>
+            ${expanded ? `<div class="px-4 pb-3 pt-2 border-t border-zinc-800/50">
+                <div class="flex justify-between gap-1">${dayEditor}</div>
+                <p class="text-xs text-zinc-700 mt-2 font-mono">Bonus added to base weight each day. Negative reduces chance; effective 0 or less = skipped today.</p>
+            </div>` : ''}
         </div>`;
     }).join('');
 }
@@ -215,6 +261,29 @@ function render() {
     renderHistory();
 }
 
+function toggleDays(i) {
+    const name = state.sets[state.current][i].name;
+    if (expandedRows.has(name)) {
+        expandedRows.delete(name);
+    } else {
+        expandedRows.add(name);
+    }
+    renderOptions();
+}
+
+function updateDayWeight(i, day, value) {
+    const opt = state.sets[state.current][i];
+    if (!opt.days) opt.days = {};
+    const v = parseInt(value, 10) || 0;
+    if (v === 0) {
+        delete opt.days[day];
+    } else {
+        opt.days[day] = v;
+    }
+    saveState();
+    renderOptions();
+}
+
 function addOption() {
     const nameEl   = document.getElementById('newName');
     const weightEl = document.getElementById('newWeight');
@@ -234,6 +303,7 @@ document.getElementById('newName').addEventListener('keydown', e => {
 });
 
 function removeOption(i) {
+    expandedRows.delete(state.sets[state.current][i].name);
     state.sets[state.current].splice(i, 1);
     saveState();
     renderOptions();
@@ -252,6 +322,7 @@ function updateOption(i, field, value) {
 
 document.getElementById('setSelect').addEventListener('change', function () {
     state.current = this.value;
+    expandedRows.clear();
     saveState();
     render();
 });
@@ -263,6 +334,7 @@ function promptNewSet() {
     if (state.sets[trimmed]) { alert('A set with that name already exists.'); return; }
     state.sets[trimmed] = [];
     state.current = trimmed;
+    expandedRows.clear();
     saveState();
     render();
 }
@@ -286,18 +358,23 @@ function deleteCurrentSet() {
     const deleted = state.current;
     delete state.sets[deleted];
     state.current = keys.find(k => k !== deleted);
+    expandedRows.clear();
     saveState();
     render();
 }
 
 function doPick() {
-    const options = state.sets[state.current] || [];
-    const pick = weightedPick(options);
+    const options  = state.sets[state.current] || [];
+    const { pairs, total } = buildPairs(options);
+    const pick     = weightedPick(pairs, total);
     const resultEl = document.getElementById('result');
     const noteEl   = document.getElementById('weightNote');
 
     if (!pick) {
-        resultEl.innerHTML = '<span class="text-yellow-600 text-sm">Add at least one option first.</span>';
+        const msg = options.length > 0
+            ? 'All options skipped today — check day bonuses.'
+            : 'Add at least one option first.';
+        resultEl.innerHTML = `<span class="text-yellow-600 text-sm">${msg}</span>`;
         noteEl.classList.add('hidden');
         return;
     }
@@ -308,9 +385,10 @@ function doPick() {
 
     const ITEM_H   = 60;
     const REEL_LEN = 22;
+    const eligible = pairs.map(([o]) => o);
     const reel = [];
     for (let i = 0; i < REEL_LEN; i++) {
-        reel.push(options[Math.floor(Math.random() * options.length)].name);
+        reel.push(eligible[Math.floor(Math.random() * eligible.length)].name);
     }
     reel.push(pick);
 
@@ -338,11 +416,10 @@ function doPick() {
     });
 
     setTimeout(() => {
-        const total = options.reduce((s, o) => s + Number(o.weight), 0);
-        const chosen = options.find(o => o.name === pick);
+        const chosen = pairs.find(([o]) => o.name === pick);
         if (chosen && total > 0) {
-            const pct = Math.round((Number(chosen.weight) / total) * 100);
-            noteEl.textContent = `${pct}% chance`;
+            const pct = Math.round((chosen[1] / total) * 100);
+            noteEl.textContent = `${pct}% chance today`;
             noteEl.classList.remove('hidden');
         }
 
@@ -390,8 +467,10 @@ function importSet(event) {
             state.sets[finalName] = data.options.map(o => ({
                 name:   String(o.name || '').trim(),
                 weight: Math.max(1, parseInt(o.weight, 10) || 1),
+                days:   (o.days && typeof o.days === 'object') ? o.days : {},
             })).filter(o => o.name);
             state.current = finalName;
+            expandedRows.clear();
             saveState();
             render();
         } catch {
