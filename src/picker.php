@@ -198,7 +198,7 @@ function renderHistory() {
         list.innerHTML = '<div class="px-4 py-3 text-zinc-600 text-sm">No picks yet</div>';
         return;
     }
-    list.innerHTML = history.slice().reverse().slice(0, 30).map(h => `
+    list.innerHTML = history.slice(-30).reverse().map(h => `
         <div class="flex items-center gap-2 px-4 py-2.5">
             <span class="flex-1 text-sm text-zinc-300">${escHtml(h.pick)}</span>
             <span class="text-xs text-zinc-600">${escHtml(h.set)}</span>
@@ -280,8 +280,9 @@ function deleteCurrentSet() {
     const keys = Object.keys(state.sets);
     if (keys.length <= 1) { alert('Cannot delete the last set.'); return; }
     if (!confirm(`Delete set "${state.current}"?`)) return;
-    delete state.sets[state.current];
-    state.current = Object.keys(state.sets)[0];
+    const deleted = state.current;
+    delete state.sets[deleted];
+    state.current = keys.find(k => k !== deleted);
     saveState();
     render();
 }
@@ -300,7 +301,7 @@ function doPick() {
 
     noteEl.classList.add('hidden');
     const btn = document.getElementById('pickBtn');
-    if (btn) btn.disabled = true;
+    btn.disabled = true;
 
     const ITEM_H   = 60;
     const REEL_LEN = 22;
@@ -347,7 +348,7 @@ function doPick() {
         saveState();
         renderHistory();
 
-        if (btn) btn.disabled = false;
+        btn.disabled = false;
     }, 1550);
 }
 
@@ -366,7 +367,7 @@ function exportSet() {
     a.href     = url;
     a.download = state.current.replace(/\s+/g, '_') + '_options.json';
     a.click();
-    URL.revokeObjectURL(url);
+    setTimeout(() => URL.revokeObjectURL(url), 100);
 }
 
 function importSet(event) {
@@ -396,14 +397,6 @@ function importSet(event) {
     };
     reader.readAsText(file);
     event.target.value = '';
-}
-
-function escHtml(str) {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
 }
 
 render();

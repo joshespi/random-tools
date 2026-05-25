@@ -10,6 +10,8 @@ $current = basename($_SERVER['PHP_SELF']);
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#09090b">
+    <link rel="manifest" href="/manifest.json">
     <title><?= htmlspecialchars($pageTitle ?? 'Tools') ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -44,16 +46,23 @@ $current = basename($_SERVER['PHP_SELF']);
     </script>
     <style>
         body { background-color: #09090b; }
-        /* slim scrollbar */
         ::-webkit-scrollbar { width: 6px; height: 6px; }
         ::-webkit-scrollbar-track { background: #18181b; }
         ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
         ::-webkit-scrollbar-thumb:hover { background: #52525b; }
-        /* range input */
         input[type=range] { -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px; background: #27272a; outline: none; }
         input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #dc2626; cursor: pointer; border: 2px solid #09090b; }
         input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #dc2626; cursor: pointer; border: 2px solid #09090b; }
     </style>
+    <script>
+        function escHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+    </script>
 </head>
 <body class="text-zinc-100 min-h-screen font-sans antialiased">
 

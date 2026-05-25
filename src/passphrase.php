@@ -3,14 +3,15 @@ $pageTitle = 'Passphrase';
 include 'includes/words.php';
 
 $wordCount   = 4;
-$delimiter   = '-';
+$delimiter   = 'symbol';
 $customDelim = '';
-$caseMode    = 'lower';
+$caseMode    = 'random';
 $appendNum   = false;
 $appendSym   = false;
 $quantity    = 5;
 
 $delimOptions = [
+    'symbol' => 'Random symbol  —  word!word',
     '-'      => 'Dash  —  word-word',
     '_'      => 'Underscore  —  word_word',
     '.'      => 'Dot  —  word.word',
@@ -62,7 +63,7 @@ include 'includes/header.php';
             <div>
                 <label class="block text-sm text-zinc-400 mb-2">Capitalisation</label>
                 <div class="grid grid-cols-2 gap-y-2 gap-x-4">
-                    <?php foreach (['lower' => 'all lowercase', 'upper' => 'ALL UPPERCASE', 'title' => 'Title Case', 'camel' => 'camelCase'] as $val => $label): ?>
+                    <?php foreach (['random' => 'Random caps', 'lower' => 'all lowercase', 'upper' => 'ALL UPPERCASE', 'title' => 'Title Case', 'camel' => 'camelCase'] as $val => $label): ?>
                         <label class="flex items-center gap-2 cursor-pointer">
                             <input type="radio" name="case_mode" value="<?= $val ?>" <?= $caseMode === $val ? 'checked' : '' ?>
                                    class="accent-red-600">
@@ -135,9 +136,10 @@ function getSettings() {
 
 function applyCase(word, mode, isFirst) {
     const lower = word.toLowerCase();
-    if (mode === 'upper') return word.toUpperCase();
-    if (mode === 'title') return lower.charAt(0).toUpperCase() + lower.slice(1);
-    if (mode === 'camel') return isFirst ? lower : lower.charAt(0).toUpperCase() + lower.slice(1);
+    if (mode === 'upper')  return word.toUpperCase();
+    if (mode === 'title')  return lower.charAt(0).toUpperCase() + lower.slice(1);
+    if (mode === 'camel')  return isFirst ? lower : lower.charAt(0).toUpperCase() + lower.slice(1);
+    if (mode === 'random') return rand(2) ? lower.charAt(0).toUpperCase() + lower.slice(1) : lower;
     return lower;
 }
 
@@ -153,11 +155,14 @@ function buildPhrase(s) {
     }
 
     let phrase;
-    if (s.delimiter === 'number') {
+    if (s.delimiter === 'symbol' || s.delimiter === 'number') {
         const parts = [];
+        const sep = s.delimiter === 'symbol'
+            ? () => SYMBOLS[rand(SYMBOLS.length)]
+            : () => String(rand(10));
         picked.forEach((w, j) => {
             parts.push(w);
-            if (j < picked.length - 1) parts.push(String(rand(10)));
+            if (j < picked.length - 1) parts.push(sep());
         });
         phrase = parts.join('');
     } else if (s.delimiter === 'custom') {
@@ -175,6 +180,8 @@ function buildPhrase(s) {
 function entropyBits(s) {
     let bits = s.count * Math.log2(POOL);
     if (s.delimiter === 'number') bits += (s.count - 1) * Math.log2(10);
+    if (s.delimiter === 'symbol') bits += (s.count - 1) * Math.log2(SYMBOLS.length);
+    if (s.caseMode === 'random')  bits += s.count;
     if (s.appendNum) bits += Math.log2(90);
     if (s.appendSym) bits += Math.log2(SYMBOLS.length);
     return Math.round(bits);
@@ -185,14 +192,6 @@ function strengthLabel(bits) {
     if (bits < 60) return { label: 'okay',      cls: 'text-zinc-400'   };
     if (bits < 80) return { label: 'strong',    cls: 'text-emerald-500'};
     return            { label: 'excellent', cls: 'text-emerald-400'};
-}
-
-function escHtml(str) {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
 }
 
 function render() {
