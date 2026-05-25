@@ -30,6 +30,10 @@ include 'includes/header.php';
                         class="px-3 py-1.5 bg-transparent hover:bg-red-950/40 border border-zinc-800 hover:border-red-900 rounded-lg text-sm text-red-700 hover:text-red-500 transition-colors">
                     Delete
                 </button>
+                <button onclick="resetToDefaults()"
+                        class="px-3 py-1.5 bg-transparent border border-zinc-800 rounded-lg text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
+                    Defaults
+                </button>
             </div>
         </div>
 
@@ -430,6 +434,14 @@ function doPick() {
 
         btn.disabled = false;
     }, 1550);
+}
+
+function resetToDefaults() {
+    if (!confirm('Reset all sets and history to defaults?')) return;
+    state = defaultState();
+    expandedRows.clear();
+    saveState();
+    render();
 }
 
 function clearHistory() {
