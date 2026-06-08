@@ -13,6 +13,7 @@ $current = basename($_SERVER['PHP_SELF']);
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="#09090b">
     <link rel="manifest" href="/manifest.json">
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <title><?= htmlspecialchars($pageTitle ?? 'Tools') ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -70,7 +71,7 @@ $current = basename($_SERVER['PHP_SELF']);
 <nav class="border-b border-zinc-800 sticky top-0 z-50" style="background:#09090b;">
     <div class="max-w-5xl mx-auto px-5 flex items-center h-13 gap-0" style="height:52px;">
         <a href="/index.php" class="select-none mr-6">
-            <span class="font-extrabold text-lg tracking-tight text-zinc-100">Espi's</span>
+            <span class="font-extrabold text-lg tracking-tight text-zinc-100">Random Tools</span>
         </a>
         <?php foreach ($nav as $file => $label): ?>
             <?php $active = $current === $file; ?>

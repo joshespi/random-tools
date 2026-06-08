@@ -1,6 +1,6 @@
 {
-  "name": "Espi's Tools",
-  "short_name": "Espi's",
+  "name": "Random Tools",
+  "short_name": "Random Tools",
   "description": "Weighted picker and passphrase generator.",
   "start_url": "/",
   "display": "standalone",
