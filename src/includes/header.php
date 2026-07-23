@@ -4,6 +4,8 @@ $nav = [
     'picker.php'     => 'Picker',
     'passphrase.php' => 'Passphrase',
     'tip.php'        => 'Tip',
+    'dice.php'       => 'Dice',
+    'coin.php'       => 'Coin',
 ];
 $current = basename($_SERVER['PHP_SELF']);
 ?><!DOCTYPE html>
@@ -33,15 +35,6 @@ $current = basename($_SERVER['PHP_SELF']);
                             950: '#09090b',
                         }
                     },
-                    animation: {
-                        'pop': 'pop 0.25s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                    },
-                    keyframes: {
-                        pop: {
-                            '0%':   { transform: 'scale(0.75)', opacity: '0' },
-                            '100%': { transform: 'scale(1)',    opacity: '1' },
-                        }
-                    }
                 }
             }
         }
@@ -64,19 +57,51 @@ $current = basename($_SERVER['PHP_SELF']);
                 .replace(/>/g, '&gt;')
                 .replace(/"/g, '&quot;');
         }
+
+        function loadJSON(key, isValid, fallback) {
+            try {
+                const raw = localStorage.getItem(key);
+                if (!raw) return fallback();
+                const parsed = JSON.parse(raw);
+                return isValid(parsed) ? parsed : fallback();
+            } catch { return fallback(); }
+        }
+
+        function saveJSON(key, value) {
+            localStorage.setItem(key, JSON.stringify(value));
+        }
+
+        function pushCapped(arr, item, max) {
+            arr.push(item);
+            if (arr.length > max) arr.shift();
+        }
+
+        function renderCappedList(el, items, limit, mapFn, emptyHtml) {
+            el.innerHTML = items.length === 0
+                ? emptyHtml
+                : items.slice(-limit).reverse().map(mapFn).join('');
+        }
+
+        function setActiveButton(buttons, isActive, activeClasses, inactiveClasses) {
+            buttons.forEach(btn => {
+                const active = isActive(btn);
+                activeClasses.forEach(c => btn.classList.toggle(c, active));
+                inactiveClasses.forEach(c => btn.classList.toggle(c, !active));
+            });
+        }
     </script>
 </head>
 <body class="text-zinc-100 min-h-screen font-sans antialiased">
 
-<nav class="border-b border-zinc-800 sticky top-0 z-50" style="background:#09090b;">
-    <div class="max-w-5xl mx-auto px-5 flex items-center h-13 gap-0" style="height:52px;">
-        <a href="/index.php" class="select-none mr-6">
+<nav class="border-b border-zinc-800 sticky top-0 z-50 bg-zinc-950">
+    <div class="max-w-5xl mx-auto px-5 flex items-center h-[52px] gap-0 overflow-x-auto" style="-webkit-overflow-scrolling: touch;">
+        <a href="/index.php" class="select-none mr-6 shrink-0">
             <span class="font-extrabold text-lg tracking-tight text-zinc-100">Random Tools</span>
         </a>
         <?php foreach ($nav as $file => $label): ?>
             <?php $active = $current === $file; ?>
             <a href="/<?= $file ?>"
-               class="relative px-1 mr-4 text-sm font-medium transition-colors py-1
+               class="relative px-1 mr-4 text-sm font-medium transition-colors py-1 shrink-0
                       <?= $active ? 'text-zinc-100' : 'text-zinc-500 hover:text-zinc-300' ?>">
                 <?= $label ?>
                 <?php if ($active): ?>

@@ -30,7 +30,7 @@ include 'includes/header.php';
 <div class="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
     <form id="phraseForm" class="lg:col-span-2 space-y-3" onsubmit="event.preventDefault();">
-        <div class="rounded-xl p-5 border border-zinc-800 space-y-5" style="background:#111113;">
+        <div class="rounded-xl p-5 border border-zinc-800 space-y-5 bg-zinc-925">
 
             <div class="text-xs text-zinc-600 font-medium uppercase tracking-widest">Options</div>
 
@@ -116,9 +116,14 @@ const SYMBOLS = ['!','@','#','$','%','^','&','*'];
 const POOL    = WORDS.length;
 
 function rand(n) {
+    const max = Math.floor(0x100000000 / n) * n;
     const buf = new Uint32Array(1);
-    crypto.getRandomValues(buf);
-    return buf[0] % n;
+    let x;
+    do {
+        crypto.getRandomValues(buf);
+        x = buf[0];
+    } while (x >= max);
+    return x % n;
 }
 
 function getSettings() {
@@ -135,8 +140,8 @@ function getSettings() {
 }
 
 function applyCase(word, mode, isFirst) {
+    if (mode === 'upper') return word.toUpperCase();
     const lower = word.toLowerCase();
-    if (mode === 'upper')  return word.toUpperCase();
     if (mode === 'title')  return lower.charAt(0).toUpperCase() + lower.slice(1);
     if (mode === 'camel')  return isFirst ? lower : lower.charAt(0).toUpperCase() + lower.slice(1);
     if (mode === 'random') return rand(2) ? lower.charAt(0).toUpperCase() + lower.slice(1) : lower;
@@ -201,7 +206,7 @@ function render() {
     for (let i = 0; i < s.quantity; i++) phrases.push(buildPhrase(s));
 
     list.innerHTML = phrases.map(p => `
-        <div class="rounded-xl border border-zinc-800 px-4 py-3 flex items-center gap-3" style="background:#111113;">
+        <div class="rounded-xl border border-zinc-800 px-4 py-3 flex items-center gap-3 bg-zinc-925">
             <code class="flex-1 font-mono text-sm text-zinc-100 break-all select-all tracking-wide">${escHtml(p)}</code>
             <button type="button" data-phrase="${escHtml(p)}"
                     class="phrase-copy shrink-0 px-3 py-1 bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg text-xs text-zinc-500 hover:text-zinc-300 transition-colors font-mono">

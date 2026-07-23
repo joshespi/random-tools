@@ -9,7 +9,7 @@ include 'includes/header.php';
 <div class="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
     <div class="lg:col-span-2 space-y-3">
-        <div class="rounded-xl p-5 border border-zinc-800 space-y-5" style="background:#111113;">
+        <div class="rounded-xl p-5 border border-zinc-800 space-y-5 bg-zinc-925">
 
             <div class="text-xs text-zinc-600 font-medium uppercase tracking-widest">Options</div>
 
@@ -52,7 +52,6 @@ include 'includes/header.php';
                     <span id="splitLabel" class="text-sm font-mono text-red-500">1</span>
                 </div>
                 <input id="splitSlider" type="range" min="1" max="20" value="1"
-                       oninput="document.getElementById('splitLabel').textContent = this.value; render()"
                        class="w-full">
             </div>
 
@@ -63,14 +62,14 @@ include 'includes/header.php';
     <div class="lg:col-span-3 space-y-3">
 
         <!-- Per person callout -->
-        <div class="rounded-xl p-5 border border-zinc-800 text-center" style="background:#111113;">
+        <div class="rounded-xl p-5 border border-zinc-800 text-center bg-zinc-925">
             <div class="text-xs text-zinc-600 font-medium uppercase tracking-widest mb-3">Each person pays</div>
             <div id="perPersonTotal" class="text-5xl font-extrabold text-zinc-100 tracking-tight mb-1">—</div>
             <div id="perPersonBreak" class="text-xs text-zinc-600 font-mono mt-2"></div>
         </div>
 
         <!-- Breakdown rows -->
-        <div class="rounded-xl border border-zinc-800 overflow-hidden" style="background:#111113;">
+        <div class="rounded-xl border border-zinc-800 overflow-hidden bg-zinc-925">
             <div class="divide-y divide-zinc-800/60">
                 <div class="flex items-center justify-between px-5 py-3">
                     <span class="text-sm text-zinc-400">Bill</span>
@@ -90,13 +89,11 @@ include 'includes/header.php';
         <!-- Round buttons -->
         <div class="flex gap-2">
             <button id="roundDownBtn" type="button"
-                    class="flex-1 py-2.5 rounded-xl border border-zinc-800 text-sm text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors font-mono"
-                    style="background:#111113;">
+                    class="flex-1 py-2.5 rounded-xl border border-zinc-800 text-sm text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors font-mono bg-zinc-925">
                 Round down per person
             </button>
             <button id="roundUpBtn" type="button"
-                    class="flex-1 py-2.5 rounded-xl border border-zinc-800 text-sm text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors font-mono"
-                    style="background:#111113;">
+                    class="flex-1 py-2.5 rounded-xl border border-zinc-800 text-sm text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors font-mono bg-zinc-925">
                 Round up per person
             </button>
         </div>
@@ -105,14 +102,27 @@ include 'includes/header.php';
 </div>
 
 <script>
+const billEl          = document.getElementById('bill');
+const tipSliderEl      = document.getElementById('tipSlider');
+const tipInputEl       = document.getElementById('tipInput');
+const splitSliderEl    = document.getElementById('splitSlider');
+const splitLabelEl     = document.getElementById('splitLabel');
+const rBillEl          = document.getElementById('rBill');
+const rTipEl           = document.getElementById('rTip');
+const rTotalEl         = document.getElementById('rTotal');
+const rTipLabelEl      = document.getElementById('rTipLabel');
+const perPersonTotalEl = document.getElementById('perPersonTotal');
+const perPersonBreakEl = document.getElementById('perPersonBreak');
+const tipButtons       = document.querySelectorAll('.tip-btn');
+
 function fmt(n) {
     return '$' + n.toFixed(2);
 }
 
 function getValues() {
-    const bill  = Math.max(0, parseFloat(document.getElementById('bill').value) || 0);
-    const tip   = Math.max(0, Math.min(50, parseFloat(document.getElementById('tipInput').value) || 0));
-    const split = Math.max(1, parseInt(document.getElementById('splitSlider').value, 10) || 1);
+    const bill  = Math.max(0, parseFloat(billEl.value) || 0);
+    const tip   = Math.max(0, Math.min(50, parseFloat(tipInputEl.value) || 0));
+    const split = Math.max(1, parseInt(splitSliderEl.value, 10) || 1);
     return { bill, tip, split };
 }
 
@@ -122,29 +132,33 @@ function render(overridePerPerson) {
     const total   = bill + tipAmt;
     const perPerson = overridePerPerson !== undefined ? overridePerPerson : total / split;
 
-    document.getElementById('rBill').textContent     = fmt(bill);
-    document.getElementById('rTip').textContent      = fmt(tipAmt);
-    document.getElementById('rTotal').textContent    = fmt(total);
-    document.getElementById('rTipLabel').textContent = `Tip (${tip}%)`;
+    rBillEl.textContent     = fmt(bill);
+    rTipEl.textContent      = fmt(tipAmt);
+    rTotalEl.textContent    = fmt(total);
+    rTipLabelEl.textContent = `Tip (${tip}%)`;
 
     if (bill > 0) {
-        document.getElementById('perPersonTotal').textContent = fmt(perPerson);
-        if (split > 1) {
-            document.getElementById('perPersonBreak').textContent =
-                `${fmt(bill / split)} bill + ${fmt(tipAmt / split)} tip`;
-        } else {
-            document.getElementById('perPersonBreak').textContent = '';
-        }
+        perPersonTotalEl.textContent = fmt(perPerson);
+        perPersonBreakEl.textContent = split > 1
+            ? `${fmt(bill / split)} bill + ${fmt(tipAmt / split)} tip`
+            : '';
     } else {
-        document.getElementById('perPersonTotal').textContent = '—';
-        document.getElementById('perPersonBreak').textContent = '';
+        perPersonTotalEl.textContent = '—';
+        perPersonBreakEl.textContent = '';
     }
 }
 
+function clearTipActive() {
+    tipButtons.forEach(b => {
+        b.classList.remove('border-red-700', 'text-red-400');
+        b.classList.add('border-zinc-700', 'text-zinc-300');
+    });
+}
+
 function setTip(pct) {
-    document.getElementById('tipInput').value  = pct;
-    document.getElementById('tipSlider').value = pct;
-    document.querySelectorAll('.tip-btn').forEach(btn => {
+    tipInputEl.value  = pct;
+    tipSliderEl.value = pct;
+    tipButtons.forEach(btn => {
         const active = Number(btn.dataset.pct) === pct;
         btn.classList.toggle('border-red-700', active);
         btn.classList.toggle('text-red-400',   active);
@@ -154,45 +168,42 @@ function setTip(pct) {
     render();
 }
 
-document.querySelectorAll('.tip-btn').forEach(btn => {
+function roundedPerPerson(roundFn) {
+    const { bill, tip, split } = getValues();
+    const total = bill * (1 + tip / 100);
+    return roundFn(total / split * 100) / 100;
+}
+
+tipButtons.forEach(btn => {
     btn.addEventListener('click', () => setTip(Number(btn.dataset.pct)));
 });
 
-document.getElementById('tipSlider').addEventListener('input', function () {
-    document.getElementById('tipInput').value = this.value;
-    document.querySelectorAll('.tip-btn').forEach(b => {
-        b.classList.remove('border-red-700', 'text-red-400');
-        b.classList.add('border-zinc-700', 'text-zinc-300');
-    });
+tipSliderEl.addEventListener('input', function () {
+    tipInputEl.value = this.value;
+    clearTipActive();
     render();
 });
 
-document.getElementById('tipInput').addEventListener('input', function () {
+tipInputEl.addEventListener('input', function () {
     const v = Math.max(0, Math.min(50, parseFloat(this.value) || 0));
-    document.getElementById('tipSlider').value = v;
-    document.querySelectorAll('.tip-btn').forEach(b => {
-        b.classList.remove('border-red-700', 'text-red-400');
-        b.classList.add('border-zinc-700', 'text-zinc-300');
-    });
+    tipSliderEl.value = v;
+    clearTipActive();
     render();
 });
 
-document.getElementById('bill').addEventListener('input', render);
+billEl.addEventListener('input', render);
+
+splitSliderEl.addEventListener('input', function () {
+    splitLabelEl.textContent = this.value;
+    render();
+});
 
 document.getElementById('roundUpBtn').addEventListener('click', () => {
-    const { total, split } = (() => {
-        const v = getValues();
-        return { total: v.bill * (1 + v.tip / 100), split: v.split };
-    })();
-    render(Math.ceil(total / split * 100) / 100);
+    render(roundedPerPerson(Math.ceil));
 });
 
 document.getElementById('roundDownBtn').addEventListener('click', () => {
-    const { total, split } = (() => {
-        const v = getValues();
-        return { total: v.bill * (1 + v.tip / 100), split: v.split };
-    })();
-    render(Math.floor(total / split * 100) / 100);
+    render(roundedPerPerson(Math.floor));
 });
 
 setTip(20);

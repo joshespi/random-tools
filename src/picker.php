@@ -12,7 +12,7 @@ include 'includes/header.php';
     <div class="lg:col-span-3 space-y-3">
 
         <!-- Set selector -->
-        <div class="rounded-xl p-4 border border-zinc-800" style="background:#111113;">
+        <div class="rounded-xl p-4 border border-zinc-800 bg-zinc-925">
             <div class="flex flex-wrap items-center gap-2">
                 <span class="text-xs text-zinc-600 font-medium uppercase tracking-widest">Set</span>
                 <select id="setSelect"
@@ -38,7 +38,7 @@ include 'includes/header.php';
         </div>
 
         <!-- Options list -->
-        <div class="rounded-xl border border-zinc-800 overflow-hidden" style="background:#111113;">
+        <div class="rounded-xl border border-zinc-800 overflow-hidden bg-zinc-925">
             <div class="flex items-center gap-2 px-4 py-2.5 border-b border-zinc-800 text-xs text-zinc-600 font-medium uppercase tracking-widest">
                 <span class="flex-1">Option</span>
                 <span class="w-20 text-center">Weight</span>
@@ -80,7 +80,7 @@ include 'includes/header.php';
     <!-- Right: pick + result -->
     <div class="lg:col-span-2 space-y-3">
 
-        <div class="rounded-xl p-5 border border-zinc-800 text-center space-y-5" style="background:#111113;">
+        <div class="rounded-xl p-5 border border-zinc-800 text-center space-y-5 bg-zinc-925">
             <button id="pickBtn" onclick="doPick()"
                     class="w-full py-4 bg-red-700 hover:bg-red-600 active:scale-95 rounded-xl text-white font-bold text-xl tracking-tight transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100">
                 Pick
@@ -91,7 +91,7 @@ include 'includes/header.php';
             <div id="weightNote" class="text-xs text-zinc-600 hidden"></div>
         </div>
 
-        <div class="rounded-xl border border-zinc-800 overflow-hidden" style="background:#111113;">
+        <div class="rounded-xl border border-zinc-800 overflow-hidden bg-zinc-925">
             <div class="px-4 py-2.5 border-b border-zinc-800 text-xs text-zinc-600 font-medium uppercase tracking-widest">
                 Recent picks
             </div>
@@ -195,25 +195,15 @@ function renderOptions() {
         return;
     }
 
-    const total = options.reduce((s, o) => s + effectiveWeight(o), 0);
+    const effs  = options.map(effectiveWeight);
+    const total = effs.reduce((s, w) => s + w, 0);
 
     list.innerHTML = options.map((opt, i) => {
-        const eff  = effectiveWeight(opt);
+        const eff  = effs[i];
         const pct  = total > 0 ? Math.round((eff / total) * 100) : 0;
         const days = opt.days || {};
         const hasModifiers = Object.values(days).some(v => Number(v) !== 0);
-        const expanded = expandedRows.has(opt.name);
-
-        const dayEditor = DAY_NAMES.map((d, di) => {
-            const val     = Number(days[di] || 0);
-            const isToday = di === TODAY;
-            return `<div class="flex flex-col items-center gap-1">
-                <span class="text-xs font-mono ${isToday ? 'text-red-500' : 'text-zinc-600'}">${d}</span>
-                <input type="number" value="${val}"
-                       onchange="updateDayWeight(${i}, ${di}, this.value)"
-                       class="w-10 bg-zinc-900 border ${isToday ? 'border-red-900' : 'border-zinc-800'} rounded px-1 py-0.5 text-xs text-zinc-300 text-center focus:outline-none focus:ring-1 focus:ring-red-600">
-            </div>`;
-        }).join('');
+        const expanded = expandedRows.has(opt);
 
         return `<div>
             <div class="flex items-center gap-2 px-4 py-2.5 hover:bg-zinc-800/30 transition-colors">
@@ -237,9 +227,22 @@ function renderOptions() {
                 </button>
             </div>
             ${expanded ? `<div class="px-4 pb-3 pt-2 border-t border-zinc-800/50">
-                <div class="flex justify-between gap-1">${dayEditor}</div>
+                <div class="flex justify-between gap-1">${renderDayEditor(days, i)}</div>
                 <p class="text-xs text-zinc-700 mt-2 font-mono">Bonus added to base weight each day. Negative reduces chance; effective 0 or less = skipped today.</p>
             </div>` : ''}
+        </div>`;
+    }).join('');
+}
+
+function renderDayEditor(days, i) {
+    return DAY_NAMES.map((d, di) => {
+        const val     = Number(days[di] || 0);
+        const isToday = di === TODAY;
+        return `<div class="flex flex-col items-center gap-1">
+            <span class="text-xs font-mono ${isToday ? 'text-red-500' : 'text-zinc-600'}">${d}</span>
+            <input type="number" value="${val}"
+                   onchange="updateDayWeight(${i}, ${di}, this.value)"
+                   class="w-10 bg-zinc-900 border ${isToday ? 'border-red-900' : 'border-zinc-800'} rounded px-1 py-0.5 text-xs text-zinc-300 text-center focus:outline-none focus:ring-1 focus:ring-red-600">
         </div>`;
     }).join('');
 }
@@ -266,11 +269,11 @@ function render() {
 }
 
 function toggleDays(i) {
-    const name = state.sets[state.current][i].name;
-    if (expandedRows.has(name)) {
-        expandedRows.delete(name);
+    const opt = state.sets[state.current][i];
+    if (expandedRows.has(opt)) {
+        expandedRows.delete(opt);
     } else {
-        expandedRows.add(name);
+        expandedRows.add(opt);
     }
     renderOptions();
 }
@@ -307,7 +310,7 @@ document.getElementById('newName').addEventListener('keydown', e => {
 });
 
 function removeOption(i) {
-    expandedRows.delete(state.sets[state.current][i].name);
+    expandedRows.delete(state.sets[state.current][i]);
     state.sets[state.current].splice(i, 1);
     saveState();
     renderOptions();
@@ -318,7 +321,8 @@ function updateOption(i, field, value) {
     if (field === 'weight') {
         opt.weight = Math.max(1, parseInt(value, 10) || 1);
     } else {
-        opt.name = value.trim();
+        const trimmed = value.trim();
+        if (trimmed) opt.name = trimmed;
     }
     saveState();
     renderOptions();
@@ -331,11 +335,15 @@ document.getElementById('setSelect').addEventListener('change', function () {
     render();
 });
 
+function isNameTaken(name) {
+    return Object.prototype.hasOwnProperty.call(state.sets, name);
+}
+
 function promptNewSet() {
     const name = prompt('New set name:');
     if (!name || !name.trim()) return;
     const trimmed = name.trim();
-    if (state.sets[trimmed]) { alert('A set with that name already exists.'); return; }
+    if (isNameTaken(trimmed)) { alert('A set with that name already exists.'); return; }
     state.sets[trimmed] = [];
     state.current = trimmed;
     expandedRows.clear();
@@ -347,7 +355,7 @@ function renameCurrentSet() {
     const name = prompt('Rename set to:', state.current);
     if (!name || !name.trim() || name.trim() === state.current) return;
     const trimmed = name.trim();
-    if (state.sets[trimmed]) { alert('A set with that name already exists.'); return; }
+    if (isNameTaken(trimmed)) { alert('A set with that name already exists.'); return; }
     state.sets[trimmed] = state.sets[state.current];
     delete state.sets[state.current];
     state.current = trimmed;
@@ -457,7 +465,7 @@ function exportSet() {
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
     a.href     = url;
-    a.download = state.current.replace(/\s+/g, '_') + '_options.json';
+    a.download = state.current.replace(/[^a-zA-Z0-9-_]+/g, '_') + '_options.json';
     a.click();
     setTimeout(() => URL.revokeObjectURL(url), 100);
 }
@@ -471,7 +479,7 @@ function importSet(event) {
             const data = JSON.parse(e.target.result);
             if (!Array.isArray(data.options)) throw new Error();
             let finalName = (data.name || 'Imported').trim();
-            if (state.sets[finalName]) {
+            if (isNameTaken(finalName)) {
                 const choice = prompt(`Set "${finalName}" already exists. New name:`, finalName + ' 2');
                 if (!choice || !choice.trim()) return;
                 finalName = choice.trim();
