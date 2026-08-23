@@ -170,10 +170,8 @@ function buildPhrase(s) {
             if (j < picked.length - 1) parts.push(sep());
         });
         phrase = parts.join('');
-    } else if (s.delimiter === 'custom') {
-        phrase = picked.join(s.customDelim);
     } else {
-        phrase = picked.join(s.delimiter);
+        phrase = picked.join(s.delimiter === 'custom' ? s.customDelim : s.delimiter);
     }
 
     if (s.appendNum) phrase += String(10 + rand(90));

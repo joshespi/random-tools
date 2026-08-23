@@ -136,18 +136,11 @@ function defaultState() {
     };
 }
 
-function loadState() {
-    try {
-        const raw = localStorage.getItem(STORAGE_KEY);
-        return raw ? JSON.parse(raw) : defaultState();
-    } catch { return defaultState(); }
-}
-
 function saveState() {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    saveJSON(STORAGE_KEY, state);
 }
 
-let state = loadState();
+let state = loadJSON(STORAGE_KEY, p => p && p.sets, defaultState);
 
 function effectiveWeight(opt) {
     const bonus = (opt.days || {})[TODAY] || 0;
@@ -167,11 +160,11 @@ function buildPairs(options) {
 function weightedPick(pairs, total) {
     if (total <= 0) return null;
     let r = Math.random() * total;
-    for (const [o, w] of pairs) {
-        r -= w;
-        if (r <= 0) return o.name;
+    for (const pair of pairs) {
+        r -= pair[1];
+        if (r <= 0) return pair;
     }
-    return pairs[pairs.length - 1][0].name;
+    return pairs[pairs.length - 1];
 }
 
 function renderSetSelect() {
@@ -248,18 +241,12 @@ function renderDayEditor(days, i) {
 }
 
 function renderHistory() {
-    const list = document.getElementById('historyList');
-    const history = state.history;
-    if (history.length === 0) {
-        list.innerHTML = '<div class="px-4 py-3 text-zinc-600 text-sm">No picks yet</div>';
-        return;
-    }
-    list.innerHTML = history.slice(-30).reverse().map(h => `
+    renderCappedList(document.getElementById('historyList'), state.history, 30, h => `
         <div class="flex items-center gap-2 px-4 py-2.5">
             <span class="flex-1 text-sm text-zinc-300">${escHtml(h.pick)}</span>
             <span class="text-xs text-zinc-600">${escHtml(h.set)}</span>
         </div>
-    `).join('');
+    `, '<div class="px-4 py-3 text-zinc-600 text-sm">No picks yet</div>');
 }
 
 function render() {
@@ -378,11 +365,11 @@ function deleteCurrentSet() {
 function doPick() {
     const options  = state.sets[state.current] || [];
     const { pairs, total } = buildPairs(options);
-    const pick     = weightedPick(pairs, total);
+    const chosen   = weightedPick(pairs, total);
     const resultEl = document.getElementById('result');
     const noteEl   = document.getElementById('weightNote');
 
-    if (!pick) {
+    if (!chosen) {
         const msg = options.length > 0
             ? 'All options skipped today — check day bonuses.'
             : 'Add at least one option first.';
@@ -391,6 +378,7 @@ function doPick() {
         return;
     }
 
+    const pick = chosen[0].name;
     noteEl.classList.add('hidden');
     const btn = document.getElementById('pickBtn');
     btn.disabled = true;
@@ -428,15 +416,13 @@ function doPick() {
     });
 
     setTimeout(() => {
-        const chosen = pairs.find(([o]) => o.name === pick);
-        if (chosen && total > 0) {
+        if (total > 0) {
             const pct = Math.round((chosen[1] / total) * 100);
             noteEl.textContent = `${pct}% chance today`;
             noteEl.classList.remove('hidden');
         }
 
-        state.history.push({ set: state.current, pick, ts: Date.now() });
-        if (state.history.length > 200) state.history.shift();
+        pushCapped(state.history, { set: state.current, pick, ts: Date.now() }, 200);
         saveState();
         renderHistory();
 

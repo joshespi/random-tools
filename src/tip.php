@@ -115,6 +115,9 @@ const perPersonTotalEl = document.getElementById('perPersonTotal');
 const perPersonBreakEl = document.getElementById('perPersonBreak');
 const tipButtons       = document.querySelectorAll('.tip-btn');
 
+const TIP_ACTIVE_CLASSES   = ['border-red-700', 'text-red-400'];
+const TIP_INACTIVE_CLASSES = ['border-zinc-700', 'text-zinc-300'];
+
 function fmt(n) {
     return '$' + n.toFixed(2);
 }
@@ -149,22 +152,13 @@ function render(overridePerPerson) {
 }
 
 function clearTipActive() {
-    tipButtons.forEach(b => {
-        b.classList.remove('border-red-700', 'text-red-400');
-        b.classList.add('border-zinc-700', 'text-zinc-300');
-    });
+    setActiveButton(tipButtons, () => false, TIP_ACTIVE_CLASSES, TIP_INACTIVE_CLASSES);
 }
 
 function setTip(pct) {
     tipInputEl.value  = pct;
     tipSliderEl.value = pct;
-    tipButtons.forEach(btn => {
-        const active = Number(btn.dataset.pct) === pct;
-        btn.classList.toggle('border-red-700', active);
-        btn.classList.toggle('text-red-400',   active);
-        btn.classList.toggle('border-zinc-700', !active);
-        btn.classList.toggle('text-zinc-300',   !active);
-    });
+    setActiveButton(tipButtons, btn => Number(btn.dataset.pct) === pct, TIP_ACTIVE_CLASSES, TIP_INACTIVE_CLASSES);
     render();
 }
 

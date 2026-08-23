@@ -1,12 +1,5 @@
 <?php
-$nav = [
-    'index.php'      => 'Home',
-    'picker.php'     => 'Picker',
-    'passphrase.php' => 'Passphrase',
-    'tip.php'        => 'Tip',
-    'dice.php'       => 'Dice',
-    'coin.php'       => 'Coin',
-];
+include __DIR__ . '/pages.php';
 $current = basename($_SERVER['PHP_SELF']);
 ?><!DOCTYPE html>
 <html lang="en">
@@ -98,12 +91,12 @@ $current = basename($_SERVER['PHP_SELF']);
         <a href="/index.php" class="select-none mr-6 shrink-0">
             <span class="font-extrabold text-lg tracking-tight text-zinc-100">Random Tools</span>
         </a>
-        <?php foreach ($nav as $file => $label): ?>
+        <?php foreach ($PAGES as $file => $page): ?>
             <?php $active = $current === $file; ?>
             <a href="/<?= $file ?>"
                class="relative px-1 mr-4 text-sm font-medium transition-colors py-1 shrink-0
                       <?= $active ? 'text-zinc-100' : 'text-zinc-500 hover:text-zinc-300' ?>">
-                <?= $label ?>
+                <?= $page['nav'] ?>
                 <?php if ($active): ?>
                     <span class="absolute bottom-0 left-0 right-0 h-px bg-red-600 rounded-full"></span>
                 <?php endif; ?>
