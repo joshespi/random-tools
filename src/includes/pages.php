@@ -6,4 +6,5 @@ $PAGES = [
     'tip.php'        => ['nav' => 'Tip',        'title' => 'Tip Calculator',       'description' => 'Bill amount, tip percentage, and split. Shows tip, total, and per-person breakdown.'],
     'dice.php'       => ['nav' => 'Dice',       'title' => 'Dice Roller',          'description' => 'Roll d4–d100, any count, with a flat modifier. Animated tumble and roll history.'],
     'coin.php'       => ['nav' => 'Coin',       'title' => 'Coin Flip',            'description' => 'Animated heads-or-tails flip with streak tracking and flip history.'],
+    'meme.php'       => ['nav' => 'Meme',       'title' => 'Meme Builder',         'description' => 'Pick a template or upload a background, drag text onto it, download as PNG. Nothing is uploaded or stored.'],
 ];
