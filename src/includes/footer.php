@@ -2,10 +2,10 @@
 
 <footer class="border-t border-zinc-800 mt-16">
     <div class="max-w-5xl mx-auto px-5 py-5 flex items-center justify-between">
-        <span class="text-xs text-zinc-700">Espi's</span>
+        <span class="text-xs text-zinc-500">Espi's Random Tools</span>
         <a href="https://github.com/joshespi/random-tools"
            target="_blank" rel="noopener noreferrer"
-           class="text-xs text-zinc-700 hover:text-zinc-400 transition-colors font-mono flex items-center gap-1.5">
+           class="text-xs text-zinc-500 hover:text-zinc-400 transition-colors font-mono flex items-center gap-1.5">
             <svg width="13" height="13" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
                 <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38
                          0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13

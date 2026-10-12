@@ -1,6 +1,8 @@
 <?php
 include __DIR__ . '/pages.php';
 $current = basename($_SERVER['PHP_SELF']);
+$page = $PAGES[$current] ?? null;
+$fullTitle = !empty($page['title']) ? $page['title'] . ' · Random Tools' : 'Random Tools';
 ?><!DOCTYPE html>
 <html lang="en">
 <head>
@@ -9,40 +11,17 @@ $current = basename($_SERVER['PHP_SELF']);
     <meta name="theme-color" content="#09090b">
     <link rel="manifest" href="/manifest.json">
     <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-    <title><?= htmlspecialchars($pageTitle ?? 'Tools') ?></title>
+    <title><?= htmlspecialchars($fullTitle) ?></title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/assets/app.css?v=<?= @filemtime(__DIR__ . '/../assets/app.css') ?: 1 ?>">
+    <?= $extraHead ?? '' ?>
     <script>
-        tailwind.config = {
-            theme: {
-                fontFamily: {
-                    sans: ['Inter', 'system-ui', 'sans-serif'],
-                    mono: ['"JetBrains Mono"', 'monospace'],
-                },
-                extend: {
-                    colors: {
-                        zinc: {
-                            925: '#111113',
-                            950: '#09090b',
-                        }
-                    },
-                }
-            }
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => navigator.serviceWorker.register('/sw.js').catch(() => {}));
         }
-    </script>
-    <style>
-        body { background-color: #09090b; }
-        ::-webkit-scrollbar { width: 6px; height: 6px; }
-        ::-webkit-scrollbar-track { background: #18181b; }
-        ::-webkit-scrollbar-thumb { background: #3f3f46; border-radius: 3px; }
-        ::-webkit-scrollbar-thumb:hover { background: #52525b; }
-        input[type=range] { -webkit-appearance: none; appearance: none; height: 4px; border-radius: 2px; background: #27272a; outline: none; }
-        input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; width: 16px; height: 16px; border-radius: 50%; background: #dc2626; cursor: pointer; border: 2px solid #09090b; }
-        input[type=range]::-moz-range-thumb { width: 14px; height: 14px; border-radius: 50%; background: #dc2626; cursor: pointer; border: 2px solid #09090b; }
-    </style>
-    <script>
+
         function escHtml(str) {
             return String(str)
                 .replace(/&/g, '&amp;')
@@ -61,7 +40,7 @@ $current = basename($_SERVER['PHP_SELF']);
         }
 
         function saveJSON(key, value) {
-            localStorage.setItem(key, JSON.stringify(value));
+            try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
         }
 
         function pushCapped(arr, item, max) {
@@ -73,6 +52,46 @@ $current = basename($_SERVER['PHP_SELF']);
             el.innerHTML = items.length === 0
                 ? emptyHtml
                 : items.slice(-limit).reverse().map(mapFn).join('');
+        }
+
+        function copyToClipboard(text) {
+            if (navigator.clipboard && window.isSecureContext) {
+                return navigator.clipboard.writeText(text);
+            }
+            return new Promise((resolve, reject) => {
+                const ta = document.createElement('textarea');
+                ta.value = text;
+                ta.setAttribute('readonly', '');
+                ta.style.cssText = 'position:fixed;top:0;left:0;opacity:0';
+                document.body.appendChild(ta);
+                ta.select();
+                let ok = false;
+                try { ok = document.execCommand('copy'); } catch {}
+                ta.remove();
+                ok ? resolve() : reject(new Error('copy failed'));
+            });
+        }
+
+        function isTypingTarget(el) {
+            return !!el.closest('input, textarea, select, [contenteditable]');
+        }
+
+        function downloadBlob(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = filename;
+            a.click();
+            setTimeout(() => URL.revokeObjectURL(url), 100);
+        }
+
+        // Space triggers the page's main action unless a control has focus.
+        function bindActionKey(btnId) {
+            document.addEventListener('keydown', e => {
+                if (e.key !== ' ' || isTypingTarget(e.target) || e.target.closest('button, a')) return;
+                const btn = document.getElementById(btnId);
+                if (btn && !btn.disabled) { e.preventDefault(); btn.click(); }
+            });
         }
 
         function setActiveButton(buttons, isActive, activeClasses, inactiveClasses) {
@@ -91,12 +110,12 @@ $current = basename($_SERVER['PHP_SELF']);
         <a href="/index.php" class="select-none mr-6 shrink-0">
             <span class="font-extrabold text-lg tracking-tight text-zinc-100">Random Tools</span>
         </a>
-        <?php foreach ($PAGES as $file => $page): ?>
+        <?php foreach ($PAGES as $file => $navPage): ?>
             <?php $active = $current === $file; ?>
             <a href="/<?= $file ?>"
                class="relative px-1 mr-4 text-sm font-medium transition-colors py-1 shrink-0
                       <?= $active ? 'text-zinc-100' : 'text-zinc-500 hover:text-zinc-300' ?>">
-                <?= $page['nav'] ?>
+                <?= $navPage['nav'] ?>
                 <?php if ($active): ?>
                     <span class="absolute bottom-0 left-0 right-0 h-px bg-red-600 rounded-full"></span>
                 <?php endif; ?>
@@ -106,3 +125,7 @@ $current = basename($_SERVER['PHP_SELF']);
 </nav>
 
 <main class="max-w-5xl mx-auto px-5 py-8">
+<?php if (!empty($page['title'])): ?>
+    <h1 class="text-2xl font-bold text-zinc-100 mb-1 tracking-tight"><?= htmlspecialchars($page['title']) ?></h1>
+    <p class="text-zinc-500 mb-7 text-sm"><?= htmlspecialchars($page['subtitle'] ?? '') ?></p>
+<?php endif; ?>

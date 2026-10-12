@@ -1,11 +1,10 @@
 <?php
-$pageTitle = 'Home';
 include 'includes/header.php';
 ?>
 
 <div class="pt-10 pb-12">
-    <h1 class="text-4xl font-extrabold text-zinc-100 tracking-tight mb-2">Espi's Tools</h1>
-    <p class="text-zinc-500 text-base max-w-lg">A small collection of randomization utilities.</p>
+    <h1 class="text-4xl font-extrabold text-zinc-100 tracking-tight mb-2">Random Tools</h1>
+    <p class="text-zinc-500 text-base max-w-lg">A small collection of everyday tools — pickers, dice, passphrases and more. Everything runs in your browser.</p>
 </div>
 
 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
