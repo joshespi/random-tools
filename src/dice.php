@@ -1,17 +1,13 @@
 <?php
-$pageTitle = 'Dice';
 include 'includes/header.php';
 ?>
-
-<h1 class="text-2xl font-bold text-zinc-100 mb-1 tracking-tight">Dice Roller</h1>
-<p class="text-zinc-500 mb-7 text-sm">Pick a die, set the count and modifier, roll.</p>
 
 <div class="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
     <!-- Left: options -->
     <div class="lg:col-span-2 space-y-3">
         <div class="rounded-xl p-5 border border-zinc-800 space-y-5 bg-zinc-925">
-            <div class="text-xs text-zinc-600 font-medium uppercase tracking-widest">Options</div>
+            <div class="text-xs text-zinc-500 font-medium uppercase tracking-widest">Options</div>
 
             <!-- Die type -->
             <div>
@@ -30,7 +26,7 @@ include 'includes/header.php';
             <!-- Number of dice -->
             <div>
                 <div class="flex justify-between mb-2">
-                    <label class="text-sm text-zinc-400">Number of dice</label>
+                    <label for="countSlider" class="text-sm text-zinc-400">Number of dice</label>
                     <span id="countLabel" class="text-sm font-mono text-red-500">1</span>
                 </div>
                 <input id="countSlider" type="range" min="1" max="10" value="1" class="w-full">
@@ -40,11 +36,11 @@ include 'includes/header.php';
             <div>
                 <label class="block text-sm text-zinc-400 mb-2">Modifier</label>
                 <div class="flex items-center gap-2">
-                    <button type="button" id="modDec"
+                    <button type="button" id="modDec" aria-label="Decrease modifier"
                             class="w-9 h-9 flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg text-zinc-300 text-lg font-bold transition-colors">&minus;</button>
-                    <input id="modInput" type="number" value="0"
+                    <input id="modInput" aria-label="Modifier" type="number" value="0"
                            class="w-16 bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm text-zinc-100 text-center font-mono focus:outline-none focus:ring-1 focus:ring-red-600">
-                    <button type="button" id="modInc"
+                    <button type="button" id="modInc" aria-label="Increase modifier"
                             class="w-9 h-9 flex items-center justify-center bg-zinc-800 hover:bg-zinc-700 border border-zinc-700 rounded-lg text-zinc-300 text-lg font-bold transition-colors">+</button>
                 </div>
             </div>
@@ -52,7 +48,7 @@ include 'includes/header.php';
 
         <div class="flex flex-wrap gap-2">
             <button onclick="clearDiceHistory()"
-                    class="px-3 py-1.5 bg-transparent border border-zinc-800 rounded-lg text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
+                    class="px-3 py-1.5 bg-transparent border border-zinc-800 rounded-lg text-xs text-zinc-500 hover:text-zinc-400 transition-colors">
                 Clear history
             </button>
         </div>
@@ -62,10 +58,10 @@ include 'includes/header.php';
     <div class="lg:col-span-3 space-y-3">
 
         <div class="rounded-xl p-5 border border-zinc-800 text-center space-y-4 bg-zinc-925">
-            <div id="notationPreview" class="text-xs text-zinc-600 font-mono h-4">1d6</div>
+            <div id="notationPreview" class="text-xs text-zinc-500 font-mono h-4">1d6</div>
 
             <div id="diceTray" class="min-h-[170px] flex flex-wrap content-center justify-center gap-3 py-2">
-                <span class="text-zinc-600 text-sm">Press Roll to throw the dice</span>
+                <span class="text-zinc-500 text-sm">Press Roll to throw the dice</span>
             </div>
 
             <button id="rollBtn" onclick="doRoll()"
@@ -73,16 +69,16 @@ include 'includes/header.php';
                 Roll
             </button>
 
-            <div id="totalResult" class="text-5xl font-extrabold text-zinc-100 tracking-tight min-h-[3.5rem] flex items-center justify-center">&mdash;</div>
-            <div id="totalBreak" class="text-xs text-zinc-600 font-mono min-h-[1rem]"></div>
+            <div id="totalResult" aria-live="polite" class="text-5xl font-extrabold text-zinc-100 tracking-tight min-h-[3.5rem] flex items-center justify-center">&mdash;</div>
+            <div id="totalBreak" class="text-xs text-zinc-500 font-mono min-h-[1rem]"></div>
         </div>
 
         <div class="rounded-xl border border-zinc-800 overflow-hidden bg-zinc-925">
-            <div class="px-4 py-2.5 border-b border-zinc-800 text-xs text-zinc-600 font-medium uppercase tracking-widest">
+            <div class="px-4 py-2.5 border-b border-zinc-800 text-xs text-zinc-500 font-medium uppercase tracking-widest">
                 Recent rolls
             </div>
             <div id="diceHistory" class="divide-y divide-zinc-800/60 max-h-64 overflow-y-auto">
-                <div class="px-4 py-3 text-zinc-600 text-sm">No rolls yet</div>
+                <div class="px-4 py-3 text-zinc-500 text-sm">No rolls yet</div>
             </div>
         </div>
     </div>
@@ -317,9 +313,9 @@ function renderHistory() {
         const label = `${notation(h.sides, h.count, h.modifier)} = ${h.total}`;
         return `<div class="flex items-center gap-2 px-4 py-2.5">
             <span class="flex-1 text-sm text-zinc-300 font-mono">${label}</span>
-            <span class="text-xs text-zinc-600">${h.rolls.join(', ')}</span>
+            <span class="text-xs text-zinc-500">${h.rolls.join(', ')}</span>
         </div>`;
-    }, '<div class="px-4 py-3 text-zinc-600 text-sm">No rolls yet</div>');
+    }, '<div class="px-4 py-3 text-zinc-500 text-sm">No rolls yet</div>');
 }
 
 function clearDiceHistory() {
@@ -337,6 +333,7 @@ function init() {
     renderHistory();
 }
 
+bindActionKey('rollBtn');
 init();
 </script>
 

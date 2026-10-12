@@ -1,10 +1,6 @@
 <?php
-$pageTitle = 'Coin';
 include 'includes/header.php';
 ?>
-
-<h1 class="text-2xl font-bold text-zinc-100 mb-1 tracking-tight">Coin Flip</h1>
-<p class="text-zinc-500 mb-7 text-sm">Flip a coin. Streaks and history are saved locally.</p>
 
 <div class="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
@@ -24,40 +20,40 @@ include 'includes/header.php';
                     class="w-full py-4 bg-red-700 hover:bg-red-600 active:scale-95 rounded-xl text-white font-bold text-xl tracking-tight transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100">
                 Flip
             </button>
-            <div id="flipResultLabel" class="text-xs text-zinc-600 font-mono h-4"></div>
+            <div id="flipResultLabel" class="text-xs text-zinc-500 font-mono h-4" aria-live="polite"></div>
         </div>
     </div>
 
     <!-- Right: tally + history -->
     <div class="lg:col-span-2 space-y-3">
         <div class="rounded-xl border border-zinc-800 bg-zinc-925 p-4">
-            <div class="text-xs text-zinc-600 font-medium uppercase tracking-widest mb-3">Tally</div>
+            <div class="text-xs text-zinc-500 font-medium uppercase tracking-widest mb-3">Tally</div>
             <div class="grid grid-cols-3 gap-2 text-center">
                 <div>
                     <div id="headsCount" class="text-2xl font-extrabold font-mono text-zinc-100">0</div>
-                    <div class="text-xs text-zinc-600 mt-1">Heads</div>
+                    <div class="text-xs text-zinc-500 mt-1">Heads</div>
                 </div>
                 <div>
                     <div id="tailsCount" class="text-2xl font-extrabold font-mono text-zinc-100">0</div>
-                    <div class="text-xs text-zinc-600 mt-1">Tails</div>
+                    <div class="text-xs text-zinc-500 mt-1">Tails</div>
                 </div>
                 <div>
                     <div id="streakCount" class="text-2xl font-extrabold font-mono text-red-500">0</div>
-                    <div class="text-xs text-zinc-600 mt-1">Streak</div>
+                    <div id="streakLabel" class="text-xs text-zinc-500 mt-1">Streak</div>
                 </div>
             </div>
             <button onclick="resetTally()"
-                    class="w-full mt-4 px-3 py-1.5 bg-transparent border border-zinc-800 rounded-lg text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
+                    class="w-full mt-4 px-3 py-1.5 bg-transparent border border-zinc-800 rounded-lg text-xs text-zinc-500 hover:text-zinc-400 transition-colors">
                 Reset tally
             </button>
         </div>
 
         <div class="rounded-xl border border-zinc-800 overflow-hidden bg-zinc-925">
-            <div class="px-4 py-2.5 border-b border-zinc-800 text-xs text-zinc-600 font-medium uppercase tracking-widest">
+            <div class="px-4 py-2.5 border-b border-zinc-800 text-xs text-zinc-500 font-medium uppercase tracking-widest">
                 Recent flips
             </div>
             <div id="flipHistory" class="flex flex-wrap gap-1.5 p-4 max-h-28 overflow-y-auto">
-                <span class="text-zinc-600 text-sm">No flips yet</span>
+                <span class="text-zinc-500 text-sm">No flips yet</span>
             </div>
         </div>
     </div>
@@ -92,6 +88,7 @@ include 'includes/header.php';
 
 <script>
 const STORAGE_KEY = 'randomizer_coin_v1';
+const FACE_NAME   = { H: 'Heads', T: 'Tails' };
 
 function defaultState() {
     return { heads: 0, tails: 0, streak: { face: null, count: 0 }, history: [] };
@@ -112,6 +109,7 @@ const headsCountEl    = document.getElementById('headsCount');
 const tailsCountEl    = document.getElementById('tailsCount');
 const streakCountEl   = document.getElementById('streakCount');
 const flipHistoryEl   = document.getElementById('flipHistory');
+const streakLabelEl   = document.getElementById('streakLabel');
 
 function doFlip() {
     flipBtn.disabled = true;
@@ -136,7 +134,7 @@ function doFlip() {
 function finishFlip(result) {
     updateTally(result);
     pushFlipHistory(result);
-    flipResultLabelEl.textContent = result === 'H' ? 'Heads' : 'Tails';
+    flipResultLabelEl.textContent = FACE_NAME[result];
     flipBtn.disabled = false;
 }
 
@@ -155,6 +153,7 @@ function renderTally() {
     headsCountEl.textContent = state.heads;
     tailsCountEl.textContent = state.tails;
     streakCountEl.textContent = state.streak.count;
+    streakLabelEl.textContent = state.streak.face ? 'Streak (' + FACE_NAME[state.streak.face].toLowerCase() + ')' : 'Streak';
 }
 
 function pushFlipHistory(face) {
@@ -170,7 +169,7 @@ function renderFlipHistory() {
         return `<span class="w-7 h-7 flex items-center justify-center rounded-full text-xs font-mono font-bold
                      ${isHeads ? 'bg-zinc-800 text-zinc-200 border border-zinc-700' : 'bg-red-950/60 text-red-300 border border-red-900'}
                      ${isLatest ? 'ring-1 ring-red-600' : ''}">${h.face}</span>`;
-    }, '<span class="text-zinc-600 text-sm">No flips yet</span>');
+    }, '<span class="text-zinc-500 text-sm">No flips yet</span>');
 }
 
 function resetTally() {
@@ -183,10 +182,20 @@ function resetTally() {
 }
 
 function init() {
+    const last = state.history[state.history.length - 1];
+    if (last && last.face === 'T') {
+        coinRotation = 180;
+        coinEl.style.transition = 'none';
+        coinEl.style.transform = 'rotateY(180deg)';
+        void coinEl.offsetWidth;
+        coinEl.style.transition = '';
+    }
+    if (last) flipResultLabelEl.textContent = FACE_NAME[last.face];
     renderTally();
     renderFlipHistory();
 }
 
+bindActionKey('flipBtn');
 init();
 </script>
 
