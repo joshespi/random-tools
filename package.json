@@ -1,1 +1,11 @@
-{}
+{
+  "name": "random-tools",
+  "private": true,
+  "scripts": {
+    "build": "tailwindcss -i src/assets/input.css -o src/assets/app.css --minify",
+    "watch": "tailwindcss -i src/assets/input.css -o src/assets/app.css --watch"
+  },
+  "devDependencies": {
+    "tailwindcss": "3.4.17"
+  }
+}
