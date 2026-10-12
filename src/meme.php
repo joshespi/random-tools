@@ -1,11 +1,7 @@
 <?php
-$pageTitle = 'Meme Builder';
+$extraHead = '<link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">';
 include 'includes/header.php';
 ?>
-<link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
-
-<h1 class="text-2xl font-bold text-zinc-100 mb-1 tracking-tight">Meme Builder</h1>
-<p class="text-zinc-500 mb-7 text-sm">Pick a template or upload your own image, drag text onto it, and download. Nothing is uploaded or stored — it all stays in your browser.</p>
 
 <div class="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
@@ -32,7 +28,7 @@ include 'includes/header.php';
         </div>
 
         <div class="rounded-xl border border-zinc-800 overflow-hidden bg-zinc-925">
-            <div class="px-4 py-2.5 border-b border-zinc-800 text-xs text-zinc-600 font-medium uppercase tracking-widest">
+            <div class="px-4 py-2.5 border-b border-zinc-800 text-xs text-zinc-500 font-medium uppercase tracking-widest">
                 Templates
             </div>
             <div id="templateGrid" class="grid grid-cols-4 sm:grid-cols-5 gap-2 p-4"></div>
@@ -43,8 +39,9 @@ include 'includes/header.php';
                 Upload background
                 <input type="file" accept="image/*" class="hidden" onchange="handleUpload(event)">
             </label>
+            <span class="px-1 py-1.5 text-xs text-zinc-500 self-center">or paste / drop an image</span>
             <button onclick="resetAll()"
-                    class="px-3 py-1.5 bg-transparent border border-zinc-800 rounded-lg text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
+                    class="px-3 py-1.5 bg-transparent border border-zinc-800 rounded-lg text-xs text-zinc-500 hover:text-zinc-400 transition-colors">
                 Reset
             </button>
         </div>
@@ -69,7 +66,7 @@ include 'includes/header.php';
         </div>
 
         <div class="rounded-xl border border-zinc-800 overflow-hidden bg-zinc-925">
-            <div class="px-4 py-2.5 border-b border-zinc-800 text-xs text-zinc-600 font-medium uppercase tracking-widest">
+            <div class="px-4 py-2.5 border-b border-zinc-800 text-xs text-zinc-500 font-medium uppercase tracking-widest">
                 Text layers
             </div>
             <div id="layerList" class="divide-y divide-zinc-800/60 max-h-52 overflow-y-auto"></div>
@@ -103,6 +100,7 @@ let layers = [];
 let selectedId = null;
 let nextId = 1;
 let dragging = false;
+let redrawQueued = false;
 let dragOffset = { x: 0, y: 0 };
 let currentAspect = '1000x1000';
 
@@ -136,11 +134,14 @@ function setBackground(id) {
 }
 
 function setAspect(w, h) {
+    const scale = h / canvas.height;
+    layers.forEach(l => { l.fontSize = Math.max(16, Math.round(l.fontSize * scale)); });
     canvas.width = w;
     canvas.height = h;
     currentAspect = w + 'x' + h;
     redraw();
     highlightAspect();
+    updateEditorPanel();
 }
 
 function highlightAspect() {
@@ -192,13 +193,57 @@ function drawBackground(ctx, w, h) {
     }
 }
 
-function measureLayerBox(ctx, layer, w, h) {
+const MAX_TEXT_WIDTH = 0.9;
+
+let fontGen = 0; // bumped when Anton finishes loading so cached layouts re-measure
+
+// Wrapped lines + widest line, cached per layer until text, size, canvas width or font change.
+function layoutLines(ctx, layer, w) {
     ctx.font = `${layer.fontSize}px Anton, Impact, sans-serif`;
-    const lines = layer.text.split('\n');
+    const key = layer.text + '|' + layer.fontSize + '|' + w + '|' + fontGen;
+    if (layer.layout && layer.layout.key === key) return layer.layout;
+    const maxW = w * MAX_TEXT_WIDTH;
+    const out = [];
+    layer.text.split('\n').forEach(para => {
+        const words = para.split(' ');
+        let line = '';
+        words.flatMap(word => breakLongWord(ctx, word, maxW)).forEach(word => {
+            const test = line ? line + ' ' + word : word;
+            if (line && ctx.measureText(test).width > maxW) {
+                out.push(line);
+                line = word;
+            } else {
+                line = test;
+            }
+        });
+        out.push(line);
+    });
+    const width = Math.max(...out.map(l => ctx.measureText(l || ' ').width));
+    layer.layout = { key, lines: out, width };
+    return layer.layout;
+}
+
+// Split a single word that can't fit on a line by itself into fitting chunks.
+function breakLongWord(ctx, word, maxW) {
+    if (ctx.measureText(word).width <= maxW) return [word];
+    const parts = [];
+    let chunk = '';
+    for (const ch of word) {
+        if (chunk && ctx.measureText(chunk + ch).width > maxW) {
+            parts.push(chunk);
+            chunk = ch;
+        } else {
+            chunk += ch;
+        }
+    }
+    parts.push(chunk);
+    return parts;
+}
+
+function measureLayerBox(ctx, layer, w, h) {
+    const { lines, width: maxW } = layoutLines(ctx, layer, w);
     const lineHeight = layer.fontSize * 1.15;
     const totalH = lineHeight * lines.length;
-    let maxW = 0;
-    lines.forEach(l => { maxW = Math.max(maxW, ctx.measureText(l || ' ').width); });
     const cx = layer.xPct * w;
     const cy = layer.yPct * h;
     const boxW = maxW + 20;
@@ -212,10 +257,9 @@ function measureLayerBox(ctx, layer, w, h) {
 
 function drawLayers(ctx, w, h, forExport) {
     layers.forEach(layer => {
-        ctx.font = `${layer.fontSize}px Anton, Impact, sans-serif`;
+        const { lines } = layoutLines(ctx, layer, w);
         ctx.textAlign = layer.align;
         ctx.textBaseline = 'middle';
-        const lines = layer.text.split('\n');
         const lineHeight = layer.fontSize * 1.15;
         const totalH = lineHeight * (lines.length - 1);
         const x = layer.xPct * w;
@@ -291,7 +335,10 @@ function onPointerMove(e) {
     const pos = getCanvasPos(e);
     layer.xPct = Math.min(1, Math.max(0, (pos.x - dragOffset.x) / canvas.width));
     layer.yPct = Math.min(1, Math.max(0, (pos.y - dragOffset.y) / canvas.height));
-    redraw();
+    if (!redrawQueued) {
+        redrawQueued = true;
+        requestAnimationFrame(() => { redrawQueued = false; redraw(); });
+    }
 }
 
 function onPointerUp() {
@@ -350,12 +397,16 @@ function updateLayer(field, value) {
     else layer[field] = value;
     redraw();
     if (field === 'text') renderLayerList();
+    if (field === 'align') {
+        setActiveButton(document.querySelectorAll('.align-btn'), b => b.dataset.align === value,
+            ALIGN_ACTIVE, ALIGN_INACTIVE);
+    }
 }
 
 function renderLayerList() {
     const el = document.getElementById('layerList');
     if (layers.length === 0) {
-        el.innerHTML = '<div class="px-4 py-4 text-zinc-600 text-sm">No text yet — add some above.</div>';
+        el.innerHTML = '<div class="px-4 py-4 text-zinc-500 text-sm">No text yet — add some above.</div>';
         return;
     }
     el.innerHTML = layers.map(l => `
@@ -363,29 +414,32 @@ function renderLayerList() {
              class="flex items-center gap-2 px-4 py-2.5 cursor-pointer transition-colors ${l.id === selectedId ? 'bg-zinc-800/60' : 'hover:bg-zinc-800/30'}">
             <span class="flex-1 text-sm text-zinc-200 truncate">${escHtml(l.text.split('\n')[0] || '(empty)')}</span>
             <button onclick="event.stopPropagation(); deleteLayer('${l.id}')"
-                    class="w-7 h-7 flex items-center justify-center text-zinc-700 hover:text-red-500 hover:bg-red-950/30 rounded transition-colors text-sm">
+                    class="w-7 h-7 flex items-center justify-center text-zinc-500 hover:text-red-500 hover:bg-red-950/30 rounded transition-colors text-sm">
                 &#x2715;
             </button>
         </div>
     `).join('');
 }
 
+const ALIGN_ACTIVE   = ['bg-red-700', 'border-red-700', 'text-white'];
+const ALIGN_INACTIVE = ['bg-zinc-800', 'border-zinc-700', 'text-zinc-400'];
+
 function updateEditorPanel() {
     const el = document.getElementById('editorPanel');
     const layer = layers.find(l => l.id === selectedId);
     if (!layer) {
-        el.innerHTML = '<p class="text-zinc-600 text-sm">Select or add a text layer to edit it. Drag text directly on the canvas to reposition.</p>';
+        el.innerHTML = '<p class="text-zinc-500 text-sm">Select or add a text layer to edit it. Drag text on the canvas to reposition, or use the arrow keys (Delete removes it).</p>';
         return;
     }
     el.innerHTML = `
         <div class="space-y-3">
             <div>
-                <label class="text-xs text-zinc-600 font-medium uppercase tracking-widest">Text</label>
+                <label class="text-xs text-zinc-500 font-medium uppercase tracking-widest">Text</label>
                 <textarea rows="2" oninput="updateLayer('text', this.value)"
                           class="mt-1 w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-red-600 resize-none">${escHtml(layer.text)}</textarea>
             </div>
             <div class="flex items-center gap-3">
-                <label class="text-xs text-zinc-600 font-medium uppercase tracking-widest w-16 shrink-0">Size</label>
+                <label class="text-xs text-zinc-500 font-medium uppercase tracking-widest w-16 shrink-0">Size</label>
                 <input type="range" min="16" max="200" value="${layer.fontSize}" oninput="updateLayer('fontSize', this.value)" class="flex-1">
             </div>
             <div class="flex items-center gap-4">
@@ -400,10 +454,10 @@ function updateEditorPanel() {
                 </label>
             </div>
             <div class="flex items-center gap-2">
-                <span class="text-xs text-zinc-600 font-medium uppercase tracking-widest mr-1">Align</span>
+                <span class="text-xs text-zinc-500 font-medium uppercase tracking-widest mr-1">Align</span>
                 ${['left', 'center', 'right'].map(a => `
-                    <button onclick="updateLayer('align', '${a}')"
-                            class="px-3 py-1 rounded-lg text-xs border transition-colors ${layer.align === a ? 'bg-red-700 border-red-700 text-white' : 'bg-zinc-800 border-zinc-700 text-zinc-400 hover:text-zinc-200'}">
+                    <button onclick="updateLayer('align', '${a}')" data-align="${a}"
+                            class="align-btn px-3 py-1 rounded-lg text-xs border transition-colors hover:text-zinc-200 ${(layer.align === a ? ALIGN_ACTIVE : ALIGN_INACTIVE).join(' ')}">
                         ${a}
                     </button>
                 `).join('')}
@@ -415,12 +469,9 @@ function updateEditorPanel() {
         </div>`;
 }
 
-function handleUpload(event) {
-    const file = event.target.files[0];
-    if (!file) return;
-    if (!file.type.startsWith('image/')) {
+function loadImageFile(file) {
+    if (!file || !file.type.startsWith('image/')) {
         alert('Please choose an image file.');
-        event.target.value = '';
         return;
     }
     const reader = new FileReader();
@@ -435,8 +486,41 @@ function handleUpload(event) {
         img.src = e.target.result;
     };
     reader.readAsDataURL(file);
+}
+
+function handleUpload(event) {
+    loadImageFile(event.target.files[0]);
     event.target.value = '';
 }
+
+document.addEventListener('paste', e => {
+    const item = [...(e.clipboardData?.items || [])].find(it => it.type.startsWith('image/'));
+    if (item) { e.preventDefault(); loadImageFile(item.getAsFile()); }
+});
+
+// Page-wide so a near miss doesn't make the browser open the image and leave the page.
+document.addEventListener('dragover', e => e.preventDefault());
+document.addEventListener('drop', e => {
+    e.preventDefault();
+    const file = e.dataTransfer.files[0];
+    if (file) loadImageFile(file);
+});
+
+document.addEventListener('keydown', e => {
+    const layer = layers.find(l => l.id === selectedId);
+    if (!layer || isTypingTarget(e.target)) return;
+    const step = e.shiftKey ? 0.02 : 0.005;
+    const moves = { ArrowLeft: [-step, 0], ArrowRight: [step, 0], ArrowUp: [0, -step], ArrowDown: [0, step] };
+    if (moves[e.key]) {
+        e.preventDefault();
+        layer.xPct = Math.min(1, Math.max(0, layer.xPct + moves[e.key][0]));
+        layer.yPct = Math.min(1, Math.max(0, layer.yPct + moves[e.key][1]));
+        redraw();
+    } else if (e.key === 'Delete' || e.key === 'Backspace') {
+        e.preventDefault();
+        deleteLayer(layer.id);
+    }
+});
 
 function resetAll() {
     if (!confirm('Clear all text and reset the background?')) return;
@@ -450,15 +534,16 @@ function resetAll() {
     updateEditorPanel();
 }
 
+function memeFilename() {
+    const first = layers.find(l => l.text.trim());
+    const slug = first ? first.text.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '').slice(0, 40) : '';
+    return (slug || 'meme') + '.png';
+}
+
 function downloadMeme() {
     redraw(true);
     canvas.toBlob(blob => {
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'meme.png';
-        a.click();
-        setTimeout(() => URL.revokeObjectURL(url), 100);
+        downloadBlob(blob, memeFilename());
         redraw();
     }, 'image/png');
 }
@@ -469,7 +554,7 @@ renderLayerList();
 updateEditorPanel();
 redraw();
 if (document.fonts) {
-    document.fonts.load('160px Anton').then(redraw).catch(() => {});
+    document.fonts.load('160px Anton').then(() => { fontGen++; redraw(); }).catch(() => {});
 }
 </script>
 
