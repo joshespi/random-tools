@@ -1,7 +1,7 @@
 {
   "name": "Random Tools",
   "short_name": "Random Tools",
-  "description": "Weighted picker and passphrase generator.",
+  "description": "Small everyday tools: weighted picker, passphrases, tip calculator, dice, coin flip and a meme builder.",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#09090b",
