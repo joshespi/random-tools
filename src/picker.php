@@ -1,10 +1,6 @@
 <?php
-$pageTitle = 'Picker';
 include 'includes/header.php';
 ?>
-
-<h1 class="text-2xl font-bold text-zinc-100 mb-1 tracking-tight">Weighted Picker</h1>
-<p class="text-zinc-500 mb-7 text-sm">Higher weight = picked more often. Chances shown for today. Use the calendar button to add day-of-week bonuses.</p>
 
 <div class="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
@@ -14,8 +10,8 @@ include 'includes/header.php';
         <!-- Set selector -->
         <div class="rounded-xl p-4 border border-zinc-800 bg-zinc-925">
             <div class="flex flex-wrap items-center gap-2">
-                <span class="text-xs text-zinc-600 font-medium uppercase tracking-widest">Set</span>
-                <select id="setSelect"
+                <span class="text-xs text-zinc-500 font-medium uppercase tracking-widest">Set</span>
+                <select id="setSelect" aria-label="Set"
                         class="flex-1 min-w-0 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-red-600">
                 </select>
                 <button onclick="promptNewSet()"
@@ -31,7 +27,7 @@ include 'includes/header.php';
                     Delete
                 </button>
                 <button onclick="resetToDefaults()"
-                        class="px-3 py-1.5 bg-transparent border border-zinc-800 rounded-lg text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
+                        class="px-3 py-1.5 bg-transparent border border-zinc-800 rounded-lg text-xs text-zinc-500 hover:text-zinc-400 transition-colors">
                     Defaults
                 </button>
             </div>
@@ -39,7 +35,7 @@ include 'includes/header.php';
 
         <!-- Options list -->
         <div class="rounded-xl border border-zinc-800 overflow-hidden bg-zinc-925">
-            <div class="flex items-center gap-2 px-4 py-2.5 border-b border-zinc-800 text-xs text-zinc-600 font-medium uppercase tracking-widest">
+            <div class="flex items-center gap-2 px-4 py-2.5 border-b border-zinc-800 text-xs text-zinc-500 font-medium uppercase tracking-widest">
                 <span class="flex-1">Option</span>
                 <span class="w-20 text-center">Weight</span>
                 <span class="w-12 text-right">Chance</span>
@@ -49,11 +45,11 @@ include 'includes/header.php';
             <div id="optionList" class="divide-y divide-zinc-800/60"></div>
             <!-- Add row -->
             <div class="flex items-center gap-2 px-4 py-3 border-t border-zinc-800">
-                <input id="newName" type="text" placeholder="Add an option..."
-                       class="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-red-600">
-                <input id="newWeight" type="number" min="1" value="1"
+                <input id="newName" type="text" placeholder="Add an option..." aria-label="New option name"
+                       class="flex-1 bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-1.5 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-red-600">
+                <input id="newWeight" type="number" min="1" value="1" aria-label="New option weight"
                        class="w-20 bg-zinc-800 border border-zinc-700 rounded-lg px-2 py-1.5 text-sm text-zinc-100 text-center focus:outline-none focus:ring-1 focus:ring-red-600">
-                <button onclick="addOption()"
+                <button onclick="addOption()" aria-label="Add option"
                         class="w-8 h-8 flex items-center justify-center bg-red-700 hover:bg-red-600 rounded-lg text-white text-xl font-bold leading-none transition-colors">
                     +
                 </button>
@@ -71,7 +67,7 @@ include 'includes/header.php';
                 <input type="file" accept=".json,application/json" class="hidden" onchange="importSet(event)">
             </label>
             <button onclick="clearHistory()"
-                    class="px-3 py-1.5 bg-transparent border border-zinc-800 rounded-lg text-xs text-zinc-600 hover:text-zinc-400 transition-colors">
+                    class="px-3 py-1.5 bg-transparent border border-zinc-800 rounded-lg text-xs text-zinc-500 hover:text-zinc-400 transition-colors">
                 Clear history
             </button>
         </div>
@@ -86,17 +82,22 @@ include 'includes/header.php';
                 Pick
             </button>
             <div id="result" class="min-h-[72px] flex items-center justify-center">
-                <span class="text-zinc-600 text-sm">Press Pick to choose</span>
+                <span class="text-zinc-500 text-sm">Press Pick to choose</span>
             </div>
-            <div id="weightNote" class="text-xs text-zinc-600 hidden"></div>
+            <div id="weightNote" class="text-xs text-zinc-500 hidden"></div>
+            <div id="pickStatus" class="sr-only" aria-live="polite"></div>
+            <label class="flex items-center justify-center gap-2 text-xs text-zinc-500 cursor-pointer">
+                <input type="checkbox" id="avoidLast" class="accent-red-600">
+                Don't repeat the last pick
+            </label>
         </div>
 
         <div class="rounded-xl border border-zinc-800 overflow-hidden bg-zinc-925">
-            <div class="px-4 py-2.5 border-b border-zinc-800 text-xs text-zinc-600 font-medium uppercase tracking-widest">
+            <div class="px-4 py-2.5 border-b border-zinc-800 text-xs text-zinc-500 font-medium uppercase tracking-widest">
                 Recent picks
             </div>
             <div id="historyList" class="divide-y divide-zinc-800/60 max-h-64 overflow-y-auto">
-                <div class="px-4 py-3 text-zinc-600 text-sm">No picks yet</div>
+                <div class="px-4 py-3 text-zinc-500 text-sm">No picks yet</div>
             </div>
         </div>
     </div>
@@ -147,10 +148,11 @@ function effectiveWeight(opt) {
     return Math.max(0, Number(opt.weight) + Number(bonus));
 }
 
-function buildPairs(options) {
+function buildPairs(options, excludeName = null) {
     const pairs = [];
     let total = 0;
     for (const o of options) {
+        if (o.name === excludeName) continue;
         const w = effectiveWeight(o);
         if (w > 0) { pairs.push([o, w]); total += w; }
     }
@@ -184,7 +186,7 @@ function renderOptions() {
     const options = state.sets[state.current] || [];
 
     if (options.length === 0) {
-        list.innerHTML = '<div class="px-4 py-4 text-zinc-600 text-sm">No options yet — add one below.</div>';
+        list.innerHTML = '<div class="px-4 py-4 text-zinc-500 text-sm">No options yet — add one below.</div>';
         return;
     }
 
@@ -200,28 +202,28 @@ function renderOptions() {
 
         return `<div>
             <div class="flex items-center gap-2 px-4 py-2.5 hover:bg-zinc-800/30 transition-colors">
-                <input type="text"
+                <input type="text" aria-label="Option name"
                        value="${escHtml(opt.name)}"
                        onchange="updateOption(${i}, 'name', this.value)"
                        class="flex-1 bg-transparent border border-transparent hover:border-zinc-700 focus:border-red-700 rounded px-2 py-1 text-sm text-zinc-200 focus:outline-none focus:bg-zinc-800">
-                <input type="number" min="1"
+                <input type="number" min="1" aria-label="Weight"
                        value="${Number(opt.weight)}"
                        onchange="updateOption(${i}, 'weight', this.value)"
                        class="w-16 bg-zinc-800 border border-zinc-700 rounded px-2 py-1 text-sm text-zinc-200 text-center focus:outline-none focus:ring-1 focus:ring-red-600">
-                <span class="w-10 text-right text-xs font-mono ${eff === 0 ? 'text-red-800' : 'text-zinc-600'}">${eff === 0 ? 'skip' : pct + '%'}</span>
+                <span class="w-10 text-right text-xs font-mono ${eff === 0 ? 'text-red-800' : 'text-zinc-500'}">${eff === 0 ? 'skip' : pct + '%'}</span>
                 <button onclick="toggleDays(${i})"
-                        title="Day-of-week bonuses"
-                        class="w-7 h-7 flex items-center justify-center rounded transition-colors ${hasModifiers || expanded ? 'text-red-500' : 'text-zinc-700 hover:text-zinc-400'}">
+                        title="Day-of-week bonuses" aria-label="Day-of-week bonuses" aria-expanded="${expanded}"
+                        class="w-7 h-7 flex items-center justify-center rounded transition-colors ${hasModifiers || expanded ? 'text-red-500' : 'text-zinc-500 hover:text-zinc-400'}">
                     ${CAL_ICON}
                 </button>
-                <button onclick="removeOption(${i})"
-                        class="w-7 h-7 flex items-center justify-center text-zinc-700 hover:text-red-500 hover:bg-red-950/30 rounded transition-colors text-sm">
+                <button onclick="removeOption(${i})" aria-label="Remove option"
+                        class="w-7 h-7 flex items-center justify-center text-zinc-500 hover:text-red-500 hover:bg-red-950/30 rounded transition-colors text-sm">
                     &#x2715;
                 </button>
             </div>
             ${expanded ? `<div class="px-4 pb-3 pt-2 border-t border-zinc-800/50">
                 <div class="flex justify-between gap-1">${renderDayEditor(days, i)}</div>
-                <p class="text-xs text-zinc-700 mt-2 font-mono">Bonus added to base weight each day. Negative reduces chance; effective 0 or less = skipped today.</p>
+                <p class="text-xs text-zinc-500 mt-2 font-mono">Bonus added to base weight each day. Negative reduces chance; effective 0 or less = skipped today.</p>
             </div>` : ''}
         </div>`;
     }).join('');
@@ -232,24 +234,35 @@ function renderDayEditor(days, i) {
         const val     = Number(days[di] || 0);
         const isToday = di === TODAY;
         return `<div class="flex flex-col items-center gap-1">
-            <span class="text-xs font-mono ${isToday ? 'text-red-500' : 'text-zinc-600'}">${d}</span>
-            <input type="number" value="${val}"
+            <span class="text-xs font-mono ${isToday ? 'text-red-500' : 'text-zinc-500'}">${d}</span>
+            <input type="number" value="${val}" aria-label="${d} bonus"
                    onchange="updateDayWeight(${i}, ${di}, this.value)"
                    class="w-10 bg-zinc-900 border ${isToday ? 'border-red-900' : 'border-zinc-800'} rounded px-1 py-0.5 text-xs text-zinc-300 text-center focus:outline-none focus:ring-1 focus:ring-red-600">
         </div>`;
     }).join('');
 }
 
+function formatWhen(ts) {
+    if (!ts) return '';
+    const d = new Date(ts);
+    const time = d.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' });
+    return d.toDateString() === new Date().toDateString()
+        ? time
+        : d.toLocaleDateString([], { month: 'short', day: 'numeric' }) + ' ' + time;
+}
+
 function renderHistory() {
     renderCappedList(document.getElementById('historyList'), state.history, 30, h => `
         <div class="flex items-center gap-2 px-4 py-2.5">
             <span class="flex-1 text-sm text-zinc-300">${escHtml(h.pick)}</span>
-            <span class="text-xs text-zinc-600">${escHtml(h.set)}</span>
+            <span class="text-xs text-zinc-500">${escHtml(h.set)}</span>
+            <span class="text-xs text-zinc-500 font-mono">${formatWhen(h.ts)}</span>
         </div>
-    `, '<div class="px-4 py-3 text-zinc-600 text-sm">No picks yet</div>');
+    `, '<div class="px-4 py-3 text-zinc-500 text-sm">No picks yet</div>');
 }
 
 function render() {
+    document.getElementById('avoidLast').checked = !!state.avoidLast;
     renderSetSelect();
     renderOptions();
     renderHistory();
@@ -291,6 +304,11 @@ function addOption() {
     nameEl.focus();
     renderOptions();
 }
+
+document.getElementById('avoidLast').addEventListener('change', function () {
+    state.avoidLast = this.checked;
+    saveState();
+});
 
 document.getElementById('newName').addEventListener('keydown', e => {
     if (e.key === 'Enter') addOption();
@@ -362,9 +380,20 @@ function deleteCurrentSet() {
     render();
 }
 
+function lastPickFor(setName) {
+    for (let i = state.history.length - 1; i >= 0; i--) {
+        if (state.history[i].set === setName) return state.history[i].pick;
+    }
+    return null;
+}
+
 function doPick() {
     const options  = state.sets[state.current] || [];
-    const { pairs, total } = buildPairs(options);
+    let { pairs, total } = buildPairs(options);
+    if (state.avoidLast && pairs.length > 1) {
+        const rest = buildPairs(options, lastPickFor(state.current));
+        if (rest.pairs.length > 0) ({ pairs, total } = rest);
+    }
     const chosen   = weightedPick(pairs, total);
     const resultEl = document.getElementById('result');
     const noteEl   = document.getElementById('weightNote');
@@ -374,6 +403,7 @@ function doPick() {
             ? 'All options skipped today — check day bonuses.'
             : 'Add at least one option first.';
         resultEl.innerHTML = `<span class="text-yellow-600 text-sm">${msg}</span>`;
+        document.getElementById('pickStatus').textContent = msg;
         noteEl.classList.add('hidden');
         return;
     }
@@ -396,7 +426,7 @@ function doPick() {
         const isWinner = i === reel.length - 1;
         const cls = isWinner
             ? 'text-3xl font-extrabold text-zinc-100 tracking-tight'
-            : 'text-2xl font-semibold text-zinc-600';
+            : 'text-2xl font-semibold text-zinc-500';
         return `<div style="height:${ITEM_H}px;" class="flex items-center justify-center ${cls}">${escHtml(n)}</div>`;
     }).join('');
 
@@ -422,6 +452,7 @@ function doPick() {
             noteEl.classList.remove('hidden');
         }
 
+        document.getElementById('pickStatus').textContent = 'Picked ' + pick;
         pushCapped(state.history, { set: state.current, pick, ts: Date.now() }, 200);
         saveState();
         renderHistory();
@@ -448,12 +479,7 @@ function clearHistory() {
 function exportSet() {
     const data = { name: state.current, options: state.sets[state.current] };
     const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
-    const url  = URL.createObjectURL(blob);
-    const a    = document.createElement('a');
-    a.href     = url;
-    a.download = state.current.replace(/[^a-zA-Z0-9-_]+/g, '_') + '_options.json';
-    a.click();
-    setTimeout(() => URL.revokeObjectURL(url), 100);
+    downloadBlob(blob, state.current.replace(/[^a-zA-Z0-9-_]+/g, '_') + '_options.json');
 }
 
 function importSet(event) {
@@ -487,6 +513,7 @@ function importSet(event) {
     event.target.value = '';
 }
 
+bindActionKey('pickBtn');
 render();
 </script>
 
