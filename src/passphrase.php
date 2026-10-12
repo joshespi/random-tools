@@ -1,5 +1,4 @@
 <?php
-$pageTitle = 'Passphrase';
 include 'includes/words.php';
 
 $wordCount   = 4;
@@ -24,28 +23,25 @@ $delimOptions = [
 include 'includes/header.php';
 ?>
 
-<h1 class="text-2xl font-bold text-zinc-100 mb-1 tracking-tight">Passphrase Generator</h1>
-<p class="text-zinc-500 mb-7 text-sm">Live preview — tweak settings and the phrases regenerate.</p>
-
 <div class="grid grid-cols-1 lg:grid-cols-5 gap-5">
 
     <form id="phraseForm" class="lg:col-span-2 space-y-3" onsubmit="event.preventDefault();">
         <div class="rounded-xl p-5 border border-zinc-800 space-y-5 bg-zinc-925">
 
-            <div class="text-xs text-zinc-600 font-medium uppercase tracking-widest">Options</div>
+            <div class="text-xs text-zinc-500 font-medium uppercase tracking-widest">Options</div>
 
             <div>
                 <div class="flex justify-between mb-2">
-                    <label class="text-sm text-zinc-400">Word count</label>
+                    <label for="wordCount" class="text-sm text-zinc-400">Word count</label>
                     <span id="wcLabel" class="text-sm font-mono text-red-500"><?= $wordCount ?></span>
                 </div>
-                <input type="range" name="word_count" min="2" max="10" value="<?= $wordCount ?>"
+                <input type="range" id="wordCount" name="word_count" min="2" max="10" value="<?= $wordCount ?>"
                        oninput="document.getElementById('wcLabel').textContent = this.value"
                        class="w-full">
             </div>
 
             <div>
-                <label class="block text-sm text-zinc-400 mb-2">Delimiter</label>
+                <label for="delimSelect" class="block text-sm text-zinc-400 mb-2">Delimiter</label>
                 <select name="delimiter" id="delimSelect" onchange="toggleCustom(this.value)"
                         class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-red-600">
                     <?php foreach ($delimOptions as $val => $label): ?>
@@ -56,8 +52,8 @@ include 'includes/header.php';
                 </select>
                 <input type="text" name="custom_delim" id="customDelimInput"
                        value="<?= htmlspecialchars($customDelim) ?>"
-                       placeholder="e.g.  ::  or  ~"
-                       class="mt-2 w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder-zinc-600 focus:outline-none focus:ring-1 focus:ring-red-600 <?= $delimiter === 'custom' ? '' : 'hidden' ?>">
+                       placeholder="e.g.  ::  or  ~" aria-label="Custom delimiter"
+                       class="mt-2 w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-red-600 <?= $delimiter === 'custom' ? '' : 'hidden' ?>">
             </div>
 
             <div>
@@ -88,8 +84,8 @@ include 'includes/header.php';
             </div>
 
             <div>
-                <label class="block text-sm text-zinc-400 mb-2">How many</label>
-                <input type="number" name="quantity" min="1" max="20" value="<?= $quantity ?>"
+                <label for="quantity" class="block text-sm text-zinc-400 mb-2">How many</label>
+                <input type="number" id="quantity" name="quantity" min="1" max="20" value="<?= $quantity ?>"
                        class="w-full bg-zinc-800 border border-zinc-700 rounded-lg px-3 py-2 text-sm text-zinc-100 focus:outline-none focus:ring-1 focus:ring-red-600">
             </div>
         </div>
@@ -100,9 +96,9 @@ include 'includes/header.php';
         </button>
     </form>
 
-    <div class="lg:col-span-3">
+    <div class="lg:col-span-3 order-first lg:order-none">
         <div id="phraseList" class="space-y-2"></div>
-        <div class="mt-3 text-xs text-zinc-700 font-mono flex flex-wrap gap-x-4 gap-y-1">
+        <div class="mt-3 text-xs text-zinc-500 font-mono flex flex-wrap gap-x-4 gap-y-1">
             <span>pool: <?= count($WORDS) ?> words</span>
             <span id="entropySummary"></span>
             <span>click a passphrase to select all</span>
@@ -227,25 +223,51 @@ function toggleCustom(val) {
 }
 
 function copyText(btn, text) {
-    navigator.clipboard.writeText(text).then(() => {
+    const flash = (label, cls) => {
         const orig = btn.textContent;
-        btn.textContent = 'copied';
-        btn.classList.add('text-red-500', 'border-red-900');
+        btn.textContent = label;
+        btn.classList.add(...cls);
         setTimeout(() => {
             btn.textContent = orig;
-            btn.classList.remove('text-red-500', 'border-red-900');
+            btn.classList.remove(...cls);
         }, 1500);
-    });
+    };
+    copyToClipboard(text)
+        .then(() => flash('copied', ['text-red-500', 'border-red-900']))
+        .catch(() => flash('press Ctrl+C', ['text-yellow-600']));
+}
+
+const SETTINGS_KEY = 'randomizer_passphrase_v1';
+const FIELDS = ['word_count', 'delimiter', 'custom_delim', 'case_mode', 'quantity'];
+
+function saveSettings() {
+    const f = document.getElementById('phraseForm');
+    const data = { append_num: f.append_num.checked, append_sym: f.append_sym.checked };
+    FIELDS.forEach(k => { data[k] = f[k].value; });
+    saveJSON(SETTINGS_KEY, data);
+}
+
+function restoreSettings() {
+    const f = document.getElementById('phraseForm');
+    const data = loadJSON(SETTINGS_KEY, p => p && typeof p === 'object', () => null);
+    if (!data) return;
+    FIELDS.forEach(k => { if (data[k] !== undefined) f[k].value = data[k]; });
+    // "None" is a real option with value "", so only fall back when the saved value no longer exists.
+    if (![...f.delimiter.options].some(o => o.value === data.delimiter)) f.delimiter.value = 'symbol';
+    f.append_num.checked = !!data.append_num;
+    f.append_sym.checked = !!data.append_sym;
+    document.getElementById('wcLabel').textContent = f.word_count.value;
+    document.getElementById('customDelimInput').classList.toggle('hidden', f.delimiter.value !== 'custom');
 }
 
 document.getElementById('phraseList').addEventListener('click', e => {
     const btn = e.target.closest('.phrase-copy');
     if (btn) copyText(btn, btn.dataset.phrase);
 });
-document.getElementById('phraseForm').addEventListener('input', render);
-document.getElementById('phraseForm').addEventListener('change', render);
+document.getElementById('phraseForm').addEventListener('input', () => { saveSettings(); render(); });
 document.getElementById('rerollBtn').addEventListener('click', render);
 
+restoreSettings();
 render();
 </script>
 
