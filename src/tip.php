@@ -14,7 +14,7 @@ include 'includes/header.php';
                 <label for="bill" class="block text-sm text-zinc-400 mb-2">Bill amount</label>
                 <div class="relative">
                     <span class="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500 text-sm font-mono">$</span>
-                    <input id="bill" type="number" min="0" step="0.01" placeholder="0.00"
+                    <input id="bill" type="number" inputmode="decimal" min="0" step="0.01" placeholder="0.00"
                            class="w-full bg-zinc-800 border border-zinc-700 rounded-lg pl-7 pr-3 py-2 text-sm text-zinc-100 placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-red-600">
                 </div>
             </div>
@@ -33,9 +33,9 @@ include 'includes/header.php';
                 </div>
                 <div class="flex items-center gap-3">
                     <input id="tipSlider" aria-label="Tip percent slider" type="range" min="0" max="50" value="20" class="flex-1">
-                    <span class="w-12 text-right">
-                        <input id="tipInput" aria-label="Tip percent" type="number" min="0" max="50" value="20"
-                               class="w-12 bg-zinc-800 border border-zinc-700 rounded px-1 py-0.5 text-sm text-red-500 font-mono text-center focus:outline-none focus:ring-1 focus:ring-red-600">
+                    <span class="w-16 text-right">
+                        <input id="tipInput" aria-label="Tip percent" type="number" inputmode="numeric" min="0" max="50" value="20"
+                               class="w-16 bg-zinc-800 border border-zinc-700 rounded px-1 py-0.5 text-sm text-red-500 font-mono text-center focus:outline-none focus:ring-1 focus:ring-red-600">
                     </span>
                     <span class="text-sm text-zinc-500 font-mono">%</span>
                 </div>
@@ -47,7 +47,7 @@ include 'includes/header.php';
                     <label for="splitSlider" class="text-sm text-zinc-400">Split</label>
                     <span id="splitLabel" class="text-sm font-mono text-red-500">1</span>
                 </div>
-                <input id="splitSlider" type="range" min="1" max="20" value="1"
+                <input id="splitSlider" type="range" min="1" max="20" value="1" aria-valuetext="1 person"
                        class="w-full">
             </div>
 
@@ -86,11 +86,11 @@ include 'includes/header.php';
         <div class="flex gap-2">
             <button type="button" data-round="down"
                     class="round-btn flex-1 py-2.5 rounded-xl border border-zinc-800 text-sm text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors font-mono bg-zinc-925">
-                Round down to whole $
+                <span class="round-label">Round down to whole $</span>
             </button>
             <button type="button" data-round="up"
                     class="round-btn flex-1 py-2.5 rounded-xl border border-zinc-800 text-sm text-zinc-400 hover:text-zinc-200 hover:border-zinc-600 transition-colors font-mono bg-zinc-925">
-                Round up to whole $
+                <span class="round-label">Round up to whole $</span>
             </button>
         </div>
 
@@ -163,6 +163,12 @@ function render() {
         perPersonBreakEl.textContent = '';
     }
 
+    roundButtons.forEach(btn => {
+        btn.querySelector('.round-label').textContent =
+            'Round ' + btn.dataset.round + ' to whole $' + (split > 1 ? ' each' : '');
+    });
+    splitSliderEl.setAttribute('aria-valuetext', split + (split === 1 ? ' person' : ' people'));
+
     if (roundMode && bill > 0 && !rounded) roundMode = null; // rounding down would cut into the bill
     setActiveButton(roundButtons, btn => rounded && btn.dataset.round === roundMode,
         TIP_ACTIVE_CLASSES, ['border-zinc-800', 'text-zinc-400']);
@@ -194,6 +200,11 @@ tipInputEl.addEventListener('input', function () {
     tipSliderEl.value = v;
     clearTipActive();
     render();
+});
+
+// A blank or out-of-range tip box snaps back to the slider's value once the user leaves it.
+tipInputEl.addEventListener('blur', function () {
+    this.value = tipSliderEl.value;
 });
 
 billEl.addEventListener('input', render);
