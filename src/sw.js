@@ -3,6 +3,17 @@ const CACHE = 'random-tools-v1';
 // Only the shell; tool pages are cached as they're visited (network-first below).
 const PRECACHE = ['/', '/manifest.json', '/favicon.svg'];
 
+// A page that was never visited while online: say so, rather than silently showing the home page.
+function offlineFallback() {
+    return new Response(
+        '<!DOCTYPE html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
+        '<title>Offline</title><body style="background:#09090b;color:#a1a1aa;font:16px system-ui;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center">' +
+        '<div><h1 style="color:#f4f4f5;font-size:1.25rem">You\'re offline</h1>' +
+        '<p>This tool hasn\'t been opened on this device yet, so it isn\'t saved for offline use.</p>' +
+        '<p><a href="/" style="color:#ef4444">Back to home</a></p></div>',
+        { headers: { 'Content-Type': 'text/html; charset=utf-8' } });
+}
+
 self.addEventListener('install', e => {
     e.waitUntil(caches.open(CACHE).then(c => c.addAll(PRECACHE)).then(() => self.skipWaiting()));
 });
@@ -49,6 +60,6 @@ self.addEventListener('fetch', e => {
             }
             return res;
         }).catch(() => caches.match(req, { ignoreSearch: true })
-            .then(hit => hit || (req.mode === 'navigate' ? caches.match('/') : undefined)))
+            .then(hit => hit || (req.mode === 'navigate' ? offlineFallback() : undefined)))
     );
 });
