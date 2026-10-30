@@ -1,5 +1,5 @@
 // Network-first for pages (so PHP edits show), cache-first for static assets.
-const CACHE = 'random-tools-v1';
+const CACHE = 'random-tools-v2';
 // Only the shell; tool pages are cached as they're visited (network-first below).
 const PRECACHE = ['/', '/manifest.json', '/favicon.svg'];
 
