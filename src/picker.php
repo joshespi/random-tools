@@ -344,11 +344,11 @@ function isNameTaken(name) {
     return Object.prototype.hasOwnProperty.call(state.sets, name);
 }
 
-function promptNewSet() {
-    const name = prompt('New set name:');
+async function promptNewSet() {
+    const name = await promptText('New set name:');
     if (!name || !name.trim()) return;
     const trimmed = name.trim();
-    if (isNameTaken(trimmed)) { alert('A set with that name already exists.'); return; }
+    if (isNameTaken(trimmed)) { showToast('A set with that name already exists.', 'error'); return; }
     state.sets[trimmed] = [];
     state.current = trimmed;
     expandedRows.clear();
@@ -356,11 +356,11 @@ function promptNewSet() {
     render();
 }
 
-function renameCurrentSet() {
-    const name = prompt('Rename set to:', state.current);
+async function renameCurrentSet() {
+    const name = await promptText('Rename set to:', state.current);
     if (!name || !name.trim() || name.trim() === state.current) return;
     const trimmed = name.trim();
-    if (isNameTaken(trimmed)) { alert('A set with that name already exists.'); return; }
+    if (isNameTaken(trimmed)) { showToast('A set with that name already exists.', 'error'); return; }
     state.sets[trimmed] = state.sets[state.current];
     delete state.sets[state.current];
     state.current = trimmed;
@@ -368,10 +368,10 @@ function renameCurrentSet() {
     render();
 }
 
-function deleteCurrentSet() {
+async function deleteCurrentSet() {
     const keys = Object.keys(state.sets);
-    if (keys.length <= 1) { alert('Cannot delete the last set.'); return; }
-    if (!confirm(`Delete set "${state.current}"?`)) return;
+    if (keys.length <= 1) { showToast('Cannot delete the last set.', 'error'); return; }
+    if (!await confirmAction(`Delete set "${state.current}"?`, 'Delete')) return;
     const deleted = state.current;
     delete state.sets[deleted];
     state.current = keys.find(k => k !== deleted);
@@ -461,16 +461,16 @@ function doPick() {
     }, 1550);
 }
 
-function resetToDefaults() {
-    if (!confirm('Reset all sets and history to defaults?')) return;
+async function resetToDefaults() {
+    if (!await confirmAction('Reset all sets and history to defaults?', 'Reset')) return;
     state = defaultState();
     expandedRows.clear();
     saveState();
     render();
 }
 
-function clearHistory() {
-    if (!confirm('Clear pick history?')) return;
+async function clearHistory() {
+    if (!await confirmAction('Clear pick history?', 'Clear')) return;
     state.history = [];
     saveState();
     renderHistory();
@@ -484,17 +484,19 @@ function exportSet() {
 
 function importSet(event) {
     const file = event.target.files[0];
+    event.target.value = ''; // allow re-importing the same file
     if (!file) return;
     const reader = new FileReader();
-    reader.onload = e => {
+    reader.onload = async e => {
         try {
             const data = JSON.parse(e.target.result);
             if (!Array.isArray(data.options)) throw new Error();
             let finalName = (data.name || 'Imported').trim();
             if (isNameTaken(finalName)) {
-                const choice = prompt(`Set "${finalName}" already exists. New name:`, finalName + ' 2');
+                const choice = await promptText(`Set "${finalName}" already exists. New name:`, finalName + ' 2');
                 if (!choice || !choice.trim()) return;
                 finalName = choice.trim();
+                if (isNameTaken(finalName)) { showToast('A set with that name already exists.', 'error'); return; }
             }
             state.sets[finalName] = data.options.map(o => ({
                 name:   String(o.name || '').trim(),
@@ -506,7 +508,7 @@ function importSet(event) {
             saveState();
             render();
         } catch {
-            alert('Could not import: invalid or unrecognised JSON format.');
+            showToast('Could not import: invalid or unrecognised JSON format.', 'error');
         }
     };
     reader.readAsText(file);

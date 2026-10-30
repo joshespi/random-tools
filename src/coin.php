@@ -79,6 +79,7 @@ include 'includes/header.php';
     .coin-back  { background: radial-gradient(circle at 35% 30%, #b91c1c, #3f0d0d 70%); color: #fecaca; transform: rotateY(180deg); }
 
     .coin-toss.tossing { animation: coinArc 1.05s cubic-bezier(.33,.66,.66,1) 1; }
+    @media (prefers-reduced-motion: reduce) { .coin-toss.tossing { animation: none; } }
     @keyframes coinArc {
         0%   { transform: translateY(0); }
         40%  { transform: translateY(-26px); }
@@ -128,7 +129,8 @@ function doFlip() {
     void tossEl.offsetWidth;
     tossEl.classList.add('tossing');
 
-    setTimeout(() => finishFlip(result), 1100);
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    setTimeout(() => finishFlip(result), reduceMotion ? 50 : 1100);
 }
 
 function finishFlip(result) {
@@ -172,8 +174,8 @@ function renderFlipHistory() {
     }, '<span class="text-zinc-500 text-sm">No flips yet</span>');
 }
 
-function resetTally() {
-    if (!confirm('Reset tally, streak, and history?')) return;
+async function resetTally() {
+    if (!await confirmAction('Reset tally, streak, and history?', 'Reset')) return;
     state = defaultState();
     saveState();
     renderTally();

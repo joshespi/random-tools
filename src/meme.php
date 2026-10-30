@@ -471,7 +471,7 @@ function updateEditorPanel() {
 
 function loadImageFile(file) {
     if (!file || !file.type.startsWith('image/')) {
-        alert('Please choose an image file.');
+        showToast('Please choose an image file.', 'error');
         return;
     }
     const reader = new FileReader();
@@ -522,8 +522,8 @@ document.addEventListener('keydown', e => {
     }
 });
 
-function resetAll() {
-    if (!confirm('Clear all text and reset the background?')) return;
+async function resetAll() {
+    if (!await confirmAction('Clear all text and reset the background?', 'Clear')) return;
     bg = { ...TEMPLATES[0] };
     bgImage = null;
     layers = [];

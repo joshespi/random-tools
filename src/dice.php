@@ -318,8 +318,8 @@ function renderHistory() {
     }, '<div class="px-4 py-3 text-zinc-500 text-sm">No rolls yet</div>');
 }
 
-function clearDiceHistory() {
-    if (!confirm('Clear roll history?')) return;
+async function clearDiceHistory() {
+    if (!await confirmAction('Clear roll history?', 'Clear')) return;
     state.history = [];
     saveState();
     renderHistory();
