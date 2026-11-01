@@ -4,6 +4,7 @@ Small everyday tools. PHP + Tailwind, runs in Docker. Everything stays in your b
 
 - **Weighted Picker** — Options with weights and day-of-week bonuses. Named sets saved to localStorage with import/export.
 - **Passphrase Generator** — Word-based passphrases from the 7,776-word EFF pool. Configurable count, delimiter, capitalisation, appended number/symbol.
+- **Key Generator** — Random keys and secrets (base64, base64url, hex, UUID v4) with custom length and prefix. Presets for Laravel `APP_KEY`, JWT secrets and more.
 - **Tip Calculator** — Bill, tip percentage and split, with optional round-to-whole-dollar per person.
 - **Dice Roller** — d4–d100, any count, flat modifier, animated rolls and history.
 - **Coin Flip** — Animated flip with streak tracking and history.
@@ -41,7 +42,7 @@ src/
 │   ├── footer.php
 │   └── words.php      # EFF large wordlist
 ├── index.php
-├── picker.php  passphrase.php  tip.php  dice.php  coin.php  meme.php
+├── picker.php  passphrase.php  keygen.php  tip.php  dice.php  coin.php  meme.php
 ├── sw.js              # service worker
 └── manifest.json
 ```
